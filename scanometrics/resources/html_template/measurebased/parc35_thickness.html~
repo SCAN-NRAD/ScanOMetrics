@@ -1,0 +1,242 @@
+
+<h3>p-Werte -- mittlere kortikale Dicke</h3>
+<img src="../../figs/pval/thickness.png" alt="bankssts.png not found" width="49%">
+
+<h3><a href="../regionbased35/bankssts.html">bankssts</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.bankssts.png" alt="lh.bankssts.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_bankssts_thickness.png" alt="lh_bankssts_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_bankssts_thickness.png" alt="ai_bankssts_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_bankssts_thickness.png" alt="rh_bankssts_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.bankssts.png" alt="rh.bankssts.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/caudalanteriorcingulate.html">caudalanteriorcingulate</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.caudalanteriorcingulate.png" alt="lh.caudalanteriorcingulate.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_caudalanteriorcingulate_thickness.png" alt="lh_caudalanteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_caudalanteriorcingulate_thickness.png" alt="ai_caudalanteriorcingulate_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_caudalanteriorcingulate_thickness.png" alt="rh_caudalanteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.caudalanteriorcingulate.png" alt="rh.caudalanteriorcingulate.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/caudalmiddlefrontal.html">caudalmiddlefrontal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.caudalmiddlefrontal.png" alt="lh.caudalmiddlefrontal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_caudalmiddlefrontal_thickness.png" alt="lh_caudalmiddlefrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_caudalmiddlefrontal_thickness.png" alt="ai_caudalmiddlefrontal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_caudalmiddlefrontal_thickness.png" alt="rh_caudalmiddlefrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.caudalmiddlefrontal.png" alt="rh.caudalmiddlefrontal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/cuneus.html">cuneus</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.cuneus.png" alt="lh.cuneus.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_cuneus_thickness.png" alt="lh_cuneus_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_cuneus_thickness.png" alt="ai_cuneus_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_cuneus_thickness.png" alt="rh_cuneus_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.cuneus.png" alt="rh.cuneus.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/entorhinal.html">entorhinal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.entorhinal.png" alt="lh.entorhinal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_entorhinal_thickness.png" alt="lh_entorhinal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_entorhinal_thickness.png" alt="ai_entorhinal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_entorhinal_thickness.png" alt="rh_entorhinal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.entorhinal.png" alt="rh.entorhinal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/fusiform.html">fusiform</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.fusiform.png" alt="lh.fusiform.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_fusiform_thickness.png" alt="lh_fusiform_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_fusiform_thickness.png" alt="ai_fusiform_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_fusiform_thickness.png" alt="rh_fusiform_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.fusiform.png" alt="rh.fusiform.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/inferiorparietal.html">inferiorparietal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.inferiorparietal.png" alt="lh.inferiorparietal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_inferiorparietal_thickness.png" alt="lh_inferiorparietal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_inferiorparietal_thickness.png" alt="ai_inferiorparietal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_inferiorparietal_thickness.png" alt="rh_inferiorparietal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.inferiorparietal.png" alt="rh.inferiorparietal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/inferiortemporal.html">inferiortemporal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.inferiortemporal.png" alt="lh.inferiortemporal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_inferiortemporal_thickness.png" alt="lh_inferiortemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_inferiortemporal_thickness.png" alt="ai_inferiortemporal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_inferiortemporal_thickness.png" alt="rh_inferiortemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.inferiortemporal.png" alt="rh.inferiortemporal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/isthmuscingulate.html">isthmuscingulate</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.isthmuscingulate.png" alt="lh.isthmuscingulate.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_isthmuscingulate_thickness.png" alt="lh_isthmuscingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_isthmuscingulate_thickness.png" alt="ai_isthmuscingulate_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_isthmuscingulate_thickness.png" alt="rh_isthmuscingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.isthmuscingulate.png" alt="rh.isthmuscingulate.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/lateraloccipital.html">lateraloccipital</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.lateraloccipital.png" alt="lh.lateraloccipital.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_lateraloccipital_thickness.png" alt="lh_lateraloccipital_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_lateraloccipital_thickness.png" alt="ai_lateraloccipital_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_lateraloccipital_thickness.png" alt="rh_lateraloccipital_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.lateraloccipital.png" alt="rh.lateraloccipital.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/lateralorbitofrontal.html">lateralorbitofrontal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.lateralorbitofrontal.png" alt="lh.lateralorbitofrontal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_lateralorbitofrontal_thickness.png" alt="lh_lateralorbitofrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_lateralorbitofrontal_thickness.png" alt="ai_lateralorbitofrontal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_lateralorbitofrontal_thickness.png" alt="rh_lateralorbitofrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.lateralorbitofrontal.png" alt="rh.lateralorbitofrontal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/lingual.html">lingual</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.lingual.png" alt="lh.lingual.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_lingual_thickness.png" alt="lh_lingual_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_lingual_thickness.png" alt="ai_lingual_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_lingual_thickness.png" alt="rh_lingual_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.lingual.png" alt="rh.lingual.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/medialorbitofrontal.html">medialorbitofrontal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.medialorbitofrontal.png" alt="lh.medialorbitofrontal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_medialorbitofrontal_thickness.png" alt="lh_medialorbitofrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_medialorbitofrontal_thickness.png" alt="ai_medialorbitofrontal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_medialorbitofrontal_thickness.png" alt="rh_medialorbitofrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.medialorbitofrontal.png" alt="rh.medialorbitofrontal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/middletemporal.html">middletemporal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.middletemporal.png" alt="lh.middletemporal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_middletemporal_thickness.png" alt="lh_middletemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_middletemporal_thickness.png" alt="ai_middletemporal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_middletemporal_thickness.png" alt="rh_middletemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.middletemporal.png" alt="rh.middletemporal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/parahippocampal.html">parahippocampal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.parahippocampal.png" alt="lh.parahippocampal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_parahippocampal_thickness.png" alt="lh_parahippocampal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_parahippocampal_thickness.png" alt="ai_parahippocampal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_parahippocampal_thickness.png" alt="rh_parahippocampal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.parahippocampal.png" alt="rh.parahippocampal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/paracentral.html">paracentral</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.paracentral.png" alt="lh.paracentral.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_paracentral_thickness.png" alt="lh_paracentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_paracentral_thickness.png" alt="ai_paracentral_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_paracentral_thickness.png" alt="rh_paracentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.paracentral.png" alt="rh.paracentral.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/parsopercularis.html">parsopercularis</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.parsopercularis.png" alt="lh.parsopercularis.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_parsopercularis_thickness.png" alt="lh_parsopercularis_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_parsopercularis_thickness.png" alt="ai_parsopercularis_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_parsopercularis_thickness.png" alt="rh_parsopercularis_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.parsopercularis.png" alt="rh.parsopercularis.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/parsorbitalis.html">parsorbitalis</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.parsorbitalis.png" alt="lh.parsorbitalis.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_parsorbitalis_thickness.png" alt="lh_parsorbitalis_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_parsorbitalis_thickness.png" alt="ai_parsorbitalis_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_parsorbitalis_thickness.png" alt="rh_parsorbitalis_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.parsorbitalis.png" alt="rh.parsorbitalis.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/parstriangularis.html">parstriangularis</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.parstriangularis.png" alt="lh.parstriangularis.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_parstriangularis_thickness.png" alt="lh_parstriangularis_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_parstriangularis_thickness.png" alt="ai_parstriangularis_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_parstriangularis_thickness.png" alt="rh_parstriangularis_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.parstriangularis.png" alt="rh.parstriangularis.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/pericalcarine.html">pericalcarine</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.pericalcarine.png" alt="lh.pericalcarine.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_pericalcarine_thickness.png" alt="lh_pericalcarine_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_pericalcarine_thickness.png" alt="ai_pericalcarine_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_pericalcarine_thickness.png" alt="rh_pericalcarine_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.pericalcarine.png" alt="rh.pericalcarine.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/postcentral.html">postcentral</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.postcentral.png" alt="lh.postcentral.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_postcentral_thickness.png" alt="lh_postcentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_postcentral_thickness.png" alt="ai_postcentral_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_postcentral_thickness.png" alt="rh_postcentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.postcentral.png" alt="rh.postcentral.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/posteriorcingulate.html">posteriorcingulate</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.posteriorcingulate.png" alt="lh.posteriorcingulate.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_posteriorcingulate_thickness.png" alt="lh_posteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_posteriorcingulate_thickness.png" alt="ai_posteriorcingulate_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_posteriorcingulate_thickness.png" alt="rh_posteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.posteriorcingulate.png" alt="rh.posteriorcingulate.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/precentral.html">precentral</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.precentral.png" alt="lh.precentral.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_precentral_thickness.png" alt="lh_precentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_precentral_thickness.png" alt="ai_precentral_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_precentral_thickness.png" alt="rh_precentral_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.precentral.png" alt="rh.precentral.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/precuneus.html">precuneus</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.precuneus.png" alt="lh.precuneus.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_precuneus_thickness.png" alt="lh_precuneus_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_precuneus_thickness.png" alt="ai_precuneus_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_precuneus_thickness.png" alt="rh_precuneus_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.precuneus.png" alt="rh.precuneus.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/rostralanteriorcingulate.html">rostralanteriorcingulate</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.rostralanteriorcingulate.png" alt="lh.rostralanteriorcingulate.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_rostralanteriorcingulate_thickness.png" alt="lh_rostralanteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_rostralanteriorcingulate_thickness.png" alt="ai_rostralanteriorcingulate_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_rostralanteriorcingulate_thickness.png" alt="rh_rostralanteriorcingulate_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.rostralanteriorcingulate.png" alt="rh.rostralanteriorcingulate.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/rostralmiddlefrontal.html">rostralmiddlefrontal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.rostralmiddlefrontal.png" alt="lh.rostralmiddlefrontal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_rostralmiddlefrontal_thickness.png" alt="lh_rostralmiddlefrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_rostralmiddlefrontal_thickness.png" alt="ai_rostralmiddlefrontal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_rostralmiddlefrontal_thickness.png" alt="rh_rostralmiddlefrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.rostralmiddlefrontal.png" alt="rh.rostralmiddlefrontal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/superiorfrontal.html">superiorfrontal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.superiorfrontal.png" alt="lh.superiorfrontal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_superiorfrontal_thickness.png" alt="lh_superiorfrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_superiorfrontal_thickness.png" alt="ai_superiorfrontal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_superiorfrontal_thickness.png" alt="rh_superiorfrontal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.superiorfrontal.png" alt="rh.superiorfrontal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/superiorparietal.html">superiorparietal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.superiorparietal.png" alt="lh.superiorparietal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_superiorparietal_thickness.png" alt="lh_superiorparietal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_superiorparietal_thickness.png" alt="ai_superiorparietal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_superiorparietal_thickness.png" alt="rh_superiorparietal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.superiorparietal.png" alt="rh.superiorparietal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/superiortemporal.html">superiortemporal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.superiortemporal.png" alt="lh.superiortemporal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_superiortemporal_thickness.png" alt="lh_superiortemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_superiortemporal_thickness.png" alt="ai_superiortemporal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_superiortemporal_thickness.png" alt="rh_superiortemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.superiortemporal.png" alt="rh.superiortemporal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/supramarginal.html">supramarginal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.supramarginal.png" alt="lh.supramarginal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_supramarginal_thickness.png" alt="lh_supramarginal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_supramarginal_thickness.png" alt="ai_supramarginal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_supramarginal_thickness.png" alt="rh_supramarginal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.supramarginal.png" alt="rh.supramarginal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/frontalpole.html">frontalpole</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.frontalpole.png" alt="lh.frontalpole.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_frontalpole_thickness.png" alt="lh_frontalpole_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_frontalpole_thickness.png" alt="ai_frontalpole_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_frontalpole_thickness.png" alt="rh_frontalpole_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.frontalpole.png" alt="rh.frontalpole.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/temporalpole.html">temporalpole</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.temporalpole.png" alt="lh.temporalpole.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_temporalpole_thickness.png" alt="lh_temporalpole_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_temporalpole_thickness__thickness.png" alt="ai_temporalpole_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_temporalpole_thickness.png" alt="rh_temporalpole_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.temporalpole.png" alt="rh.temporalpole.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/transversetemporal.html">transversetemporal</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.transversetemporal.png" alt="lh.transversetemporal.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_transversetemporal_thickness.png" alt="lh_transversetemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_transversetemporal_thickness.png" alt="ai_transversetemporal_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_transversetemporal_thickness.png" alt="rh_transversetemporal_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.transversetemporal.png" alt="rh.transversetemporal.png not found" width="14%" vspace="20" align="top">
+
+<h3><a href="../regionbased35/insula.html">insula</a> -- mittlere kortikale Dicke</h3>
+<img src="../../figs/parc35/lh.insula.png" alt="lh.insula.png not found" width="14%" vspace="20" align="top">
+<img src="../../figs/parc35_thickness/lh_insula_thickness.png" alt="lh_insula_thickness.png not found" width="25%">
+<img src="../../figs/parc35_thickness/ai_insula_thickness.png" alt="ai_insula_thickness.png not found" width="19%">
+<img src="../../figs/parc35_thickness/rh_insula_thickness.png" alt="rh_insula_thickness.png not found" width="25%">
+<img src="../../figs/parc35/rh.insula.png" alt="rh.insula.png not found" width="14%" vspace="20" align="top">
+

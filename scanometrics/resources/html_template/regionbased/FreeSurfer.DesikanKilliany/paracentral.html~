@@ -1,0 +1,49 @@
+
+<h3>paracentral -- p-Werte</h3>
+<img src="../../figs/pval/paracentral.png" alt="paracentral.png not found" width="49%">
+
+<h3>paracentral -- Lokalisation</h3>
+<img src="../../figs/parc35/lh.paracentral.png" alt="lh.paracentral.png not found" width="49%">
+<img src="../../figs/parc35/rh.paracentral.png" alt="rh.paracentral.png not found" width="49%">
+
+<h3>paracentral -- <a href="../measurebased/parc_area.html">Oberfl&auml;che</a></h3>
+<img src="../../figs/parc35_area/lh_paracentral_area.png" alt="lh_paracentral_area.png not found" width="35%">
+<img src="../../figs/parc35_area/ai_paracentral_area.png" alt="ai_paracentral_area.png not found" width="28%">
+<img src="../../figs/parc35_area/rh_paracentral_area.png" alt="rh_paracentral_area.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_volume.html">Volumen der grauen Substanz</a></h3>
+<img src="../../figs/parc35_volume/lh_paracentral_volume.png" alt="lh_paracentral_volume.png not found" width="35%">
+<img src="../../figs/parc35_volume/ai_paracentral_volume.png" alt="ai_paracentral_volume.png not found" width="28%">
+<img src="../../figs/parc35_volume/rh_paracentral_volume.png" alt="rh_paracentral_volume.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_thickness.html">mittlere kortikale Dicke</a></h3>
+<img src="../../figs/parc35_thickness/lh_paracentral_thickness.png" alt="lh_paracentral_thickness.png not found" width="35%">
+<img src="../../figs/parc35_thickness/ai_paracentral_thickness.png" alt="ai_paracentral_thickness.png not found" width="28%">
+<img src="../../figs/parc35_thickness/rh_paracentral_thickness.png" alt="rh_paracentral_thickness.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_thicknessstd.html">Standardabweichung der kortikalen Dicke</a></h3>
+<img src="../../figs/parc35_thicknessstd/lh_paracentral_thicknessstd.png" alt="lh_paracentral_thicknessstd.png not found" width="35%">
+<img src="../../figs/parc35_thicknessstd/ai_paracentral_thicknessstd.png" alt="ai_paracentral_thicknessstd.png not found" width="28%">
+<img src="../../figs/parc35_thicknessstd/rh_paracentral_thicknessstd.png" alt="rh_paracentral_thicknessstd.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_meancurv.html">mittlere Kr&uuml;mmung</a></h3>
+<img src="../../figs/parc35_meancurv/lh_paracentral_meancurv.png" alt="lh_paracentral_meancurv.png not found" width="35%">
+<img src="../../figs/parc35_meancurv/ai_paracentral_meancurv.png" alt="ai_paracentral_meancurv.png not found" width="28%">
+<img src="../../figs/parc35_meancurv/rh_paracentral_meancurv.png" alt="rh_paracentral_meancurv.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_gauscurv.html">Gauss&acute;sche Kr&uuml;mmung</a></h3>
+<img src="../../figs/parc35_gauscurv/lh_paracentral_gauscurv.png" alt="lh_paracentral_gauscurv.png not found" width="35%">
+<img src="../../figs/parc35_gauscurv/ai_paracentral_gauscurv.png" alt="ai_paracentral_gauscurv.png not found" width="28%">
+<img src="../../figs/parc35_gauscurv/rh_paracentral_gauscurv.png" alt="rh_paracentral_gauscurv.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_foldind.html">Faltungsindex</a></h3>
+<img src="../../figs/parc35_foldind/lh_paracentral_foldind.png" alt="lh_paracentral_foldind.png not found" width="35%">
+<img src="../../figs/parc35_foldind/ai_paracentral_foldind.png" alt="ai_paracentral_foldind.png not found" width="28%">
+<img src="../../figs/parc35_foldind/rh_paracentral_foldind.png" alt="rh_paracentral_foldind.png not found" width="35%">
+
+<h3>paracentral -- <a href="../measurebased/parc_curvind.html">Kr&uuml;mmungsindex</a></h3>
+<img src="../../figs/parc35_curvind/lh_paracentral_curvind.png" alt="lh_paracentral_curvind.png not found" width="35%">
+<img src="../../figs/parc35_curvind/ai_paracentral_curvind.png" alt="ai_paracentral_curvind.png not found" width="28%">
+<img src="../../figs/parc35_curvind/rh_paracentral_curvind.png" alt="rh_paracentral_curvind.png not found" width="35%">
+
+

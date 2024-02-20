@@ -1,0 +1,116 @@
+
+<h3>Morphometrie</h3>
+
+Der Begriff ``Morphomerie'' leitet sich ab vom Griechischen ``morphon'' (Gestalt, Form) und ``metrikon'' (Metrik, Z&auml;hlung, Messung) und beschreibt die Charakterisierung der Form von Objekten durch Masszahlen. Im Kontext der Neurowissenschaften erm&ouml;glicht Hirnmorphometrie den quantitativen Vergleich verschiedener Gehirnstrukturen entweder zwischen Gruppen oder die Abweichung einzelner Patienten von einem Kontrollkollektiv. 
+
+
+
+<h3><a href="../measurebased/pve_volume.html">global: Partialvolumina</a></h3>
+
+Partialvolumina (partial volume estimates, PVEs) werden mit der Software <a href="http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/">FSL</a> berechnet. 
+Zun&auml;chst werden die DICOM-Dateien in das NIFTI-Format (.nii.gz) konvertiert und die Nicht-Gehirn-Anteile mit dem Brain Extraction Tool (<a href="http://">BET</a>) entfernt. Danach wird das Tool <a href="http://">FAST</a> verwendet um die Voxel in drei Gewebeklassen einzuteilen: Liquor (cerebro-spinal fluid, CSF), graue Substanz (grey matter, GM) und weisse Substanz (white matter, WM). Dabei werden sowohl die Grauwerte der Voxel verwendet, als auch die statistische Wahrscheinlichkeit am gegebenen Ort eine bestimmte Gewebeklasse zu finden. In der <a href="">statistischen Auswertung</a> werden diese Werte denjenigen der Vergleichsgruppe entgegen gestellt. 
+
+
+
+<h3>kortikale Parzellierungen</h3>
+
+F&uuml;r automatische <a href="../regionbased/index.html">Parzellierungen</a> des Kortexbandes werden mithilfe der Software <a href="https://surfer.nmr.mgh.harvard.edu/">FreeSurfer</a> folgende Gr&ouml;ssen berechnet. Alle Gr&ouml;ssen ausser dem Volumen, der Oberfl&auml;che und der Standardabweichung der kortikalen Dicke stellen dabei ein statistisches Mittel &uuml;ber die gesamte, teilweise ausgedehnte Kortexparzelle dar. 
+
+<h4><a href="../measurebased/parc_area.html">Oberfl&auml;che</a></h4>
+
+Angabe in Quadratmillimetern, Division durch 100 liefert die Fl&auml;che in Quadratzentimetern 
+
+
+
+
+
+
+<h4><a href="../measurebased/parc_volume.html">Volumen der grauen Substanz</a></h4>
+
+Angabe in Kubikmillimetern, Division durch 1000 liefert das Volumen in Millilitern 
+
+
+
+
+
+
+<h4><a href="../measurebased/parc_thickness.html">mittlere kortikale Dicke</a></h4>
+
+Angabe in Millimetern
+
+
+
+
+
+
+<h4><a href="../measurebased/parc_thicknessstd.html">Standardabweichung der kortikalen Dicke</a></h4>
+
+Angabe in Millimetern
+
+
+
+
+
+
+<h4><a href="../measurebased/parc_meancurv.html">mittlere Kr&uuml;mmung</a></h4>
+
+Auf einer Oberfl&auml;che im dreidimensionalen Raum k&ouml;nnen zwei Hauptkr&uuml;mmungsrichtungen bestimmt werden und die Oberfl&auml;che kann lokal durch ein Ellipsoid mit maximalen und minimalen Radien R1 und R2 angen&auml;hert werden. Eine Kr&uuml;mmung wird gemessen als das Inverse des Kr&uuml;mmungsradius und hat daher die Dimension 1/Millimeter. Die mittlere Kr&uuml;mmung berechnet sich aus dem arithmetischen Mittel nach H = (1/R1+1/R2)/2 und hat daher ebenfalls Dimension 1/Millimeter. 
+
+
+<h4><a href="../measurebased/parc_gauscurv.html">Gauss&acute;sche Kr&uuml;mmung</a></h4>
+
+Die Gauss&acute;sche Kr&uuml;mmung ist proportional zum geometrischen Mittel der Kr&uuml;mmungen und berechnet sich gem&auml;ss K = 1/R1 * 1/R2. Folglich ist die Dimension 1/Quadratmillimeter. 
+
+
+<h4><a href="../measurebased/parc_foldind.html">Faltungsindex</a></h4>
+
+abs(1/R1) * (abs(1/R1) - abs(1/R2)) 
+
+
+Die Dimension ist 1/Quadratmillimeter. 
+
+
+<h4><a href="../measurebased/parc_curvind.html">Kr&uuml;mmungsindex</a></h4>
+
+
+
+
+Die Dimension ist 1/Quadratmillimeter. 
+
+
+<h3><a href="../measurebased/seg_volume.html">subkortikale Segmentierungen: Volumen</a></h3>
+
+F&uuml;r automatische subkortikale Segmentierungen des wird von der Software <a href="https://surfer.nmr.mgh.harvard.edu/">FreeSurfer</a> das Volumen berechnet (Angabe in Kubikmillimetern, Division durch 1000 liefert das Volumen in Millilitern). 
+
+
+
+<h3>statistische Auswertung</h3>
+
+Die statistische Auswertung wird mit der Software <a href="https://www.gnu.org/software/octave/">Octave</a> vorgenommen. Dabei werden in einem ersten Schritt die statistischen Abweichungen von der Kontrollgruppe und deren Signifikanz analysiert. Danach wird mittels false discovery rate correction (FDR) f&uuml;r wiederholtes Testen korrigiert (alle Masse, alle Segmentierungen und Parzellierungen). Als letzter Schritt wird die <a href="">graphische Darstellung</a> in Form von PNG-Figuren generiert und in eine HTML-Seite integriert. 
+
+<p>
+Die Statistik wird zun&auml;chst auf die Subgruppe der Segmentierungen und Parzellierungen eingeschr&auml;nkt, die in allen Subjects vorhanden sind (abh&auml;ngig von der verwendeten <a href="https://surfer.nmr.mgh.harvard.edu/">FreeSurfer</a>-Version kann dies unterschiedlich sein). Dann werden folgende Schritte durchgef&uuml;hrt: 
+
+<ul>
+    <li>Korrektur auf das von der Software <a href="https://surfer.nmr.mgh.harvard.edu/">FreeSurfer</a> berechnete intrakranielle Volumen (estimated total intracranial volume, eTIV): Bei der Normierung werden die Gr&ouml;ssen gem&auml;ss ihrer physikalischen Dimension sakliert, also z.B. die kortikale Dicke mit der dritten Wurzel des Volumens oder die mittlere Kr&uuml;mmung mit dem Inversen der dritten Wurzel. Trotz der Normierung werden physikalische Einheiten beibehalten, so dass sich Gehirne nicht &auml;ndern, die genau dem mittleren Hirnvolumen der Kontrollgruppe entsprechen.</li> 
+    <li>Fit eines linearen oder quadratischen Alterstrends und deren 95-Prozent-Vorhersageintervalle (95 Prozent der Datenpunkte werden innerhalb dieser Linien erwartet) an alle morphometrischen Masse der Kontrollgruppe f&uuml;r originale und normierte Masse. Das quadratische Modell wird nur dann genommen, falls es auf Signifikanzniveau 0.01 besser fittet als das lineare (F-Test).</li>
+    <li>Berechnung der Residuen auf diese Alterstrends f&uuml;r den Patienten/die Patientengruppe und alle Vertreter im Kontrollkollektiv.</li>
+    <li>t-Tests zwischen den Residuen f&uuml;r den Patienten/die Patientengruppe und den Vertretern im Kontrollkollektiv.</li>
+</ul>
+
+
+
+<h3>graphische Darstellung</h3>
+
+Die Darstellung der Resultate erfolgt &uuml;ber eine HTML-Seite und PNG-Figuren, welche mit Mausklick rechts und ``Speichern unter ...'' an einem beliebigen Ort lokal abgespeichert werden k&ouml;nnen. Die Figuren wurden im Rahmen der <a href="">statistischen Auswertung</a> mit Hilfe der Software <a href="https://www.gnu.org/software/octave/">Octave</a> erzeugt. 
+
+<p>
+Die Figuren ordnen den Patienten bzw. die Patientengruppe in die gesunden Vergleichsdaten ein. In der linken Figur ist der beim Patienten vorgefundene Wert eines morphometrischen Masses mit seiner pysikalischen Einheit angegeben (z.B. mm bei der kortikalen Dicke). Bei Patientengruppen wird das Gruppenmittel angegeben. Patienten sind als gef&uuml;llte blaue Symbole gezeigt, gesunde Vergleichsdaten als offene Symbole in magenta. Vergleichsdaten, die nicht in allen Charakteristika (Geschlecht, MR-Sequenz und MR-Scanner) mit dem Patienten &uuml;berein stimmen, werden kleiner und heller dargestellt. Statistische Trendlinien und Konfidenzintervalle wurden ausschliesslich aus Kontrollen mit vollst&auml;ndiger &Uuml;bereinstimmung berechnet. Gelb unterlegte Figuren weisen auf Gr&ouml;ssen hin, die unkorrigiert eine Abweichung von der Kontrollgruppe auf Signifikanzniveau 0.01 darstellen. Abweichungen nach Korrektur auf wiederholtes Testen (false discovery rate limitation, FDR) sind rot hinterlegt dargestellt. 
+
+<p> 
+Dargestellt wird die Altersabh&auml;ngigkeit der gew&auml;hlten morphometrischen Masse (x-Achse: Alter in Jahren zum Zeitpunkt des MR-Scans). Die linke Figur zeigt auf der y-Achse die Originaldaten in physikalischen Einheiten. Viele morphometrische Masse werden deutlich von der Kopfgr&ouml;sse beeinflusst. Daher sind auf der rechten Seite dieselben Daten nach Korrektur auf das von der Software <a href="https://surfer.nmr.mgh.harvard.edu/">FreeSurfer</a> berechnete intrakranielle Volumen angegeben (estimated total intracranial volume, eTIV). 
+
+<p>
+Unabh&auml;ngig von der graphischen Darstellung werden die originalen und normierten Daten auch in Tabellenform abgespeichert. Sie sind so einer alternativen Darstellungsart oder wissenschaftlichen Auswertung zug&auml;nglich. 
+
+<p> Zwischen den resultaten f&uuml;r die linke und die rechte Hemisph&auml;re werden (wo passend) Asymmetrieindizes dargestellt (beschr&auml;nkt auf das Intervall zwischen -1 und 1; -1: links dominant, +1: rechts dominant, 0: ausgeglichen). Dabei zeigt das Histogramm die Verteilung der Normdaten und die durchgezogene Linie das Resultat für den betrachteten Patienten. 

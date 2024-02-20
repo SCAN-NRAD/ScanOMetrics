@@ -1,0 +1,49 @@
+
+<h3>inferiorparietal -- p-Werte</h3>
+<img src="../../figs/pval/inferiorparietal.png" alt="inferiorparietal.png not found" width="49%">
+
+<h3>inferiorparietal -- Lokalisation</h3>
+<img src="../../figs/parc35/lh.inferiorparietal.png" alt="lh.inferiorparietal.png not found" width="49%">
+<img src="../../figs/parc35/rh.inferiorparietal.png" alt="rh.inferiorparietal.png not found" width="49%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_area.html">Oberfl&auml;che</a></h3>
+<img src="../../figs/parc35_area/lh_inferiorparietal_area.png" alt="lh_inferiorparietal_area.png not found" width="35%">
+<img src="../../figs/parc35_area/ai_inferiorparietal_area.png" alt="ai_inferiorparietal_area.png not found" width="28%">
+<img src="../../figs/parc35_area/rh_inferiorparietal_area.png" alt="rh_inferiorparietal_area.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_volume.html">Volumen der grauen Substanz</a></h3>
+<img src="../../figs/parc35_volume/lh_inferiorparietal_volume.png" alt="lh_inferiorparietal_volume.png not found" width="35%">
+<img src="../../figs/parc35_volume/ai_inferiorparietal_volume.png" alt="ai_inferiorparietal_volume.png not found" width="28%">
+<img src="../../figs/parc35_volume/rh_inferiorparietal_volume.png" alt="rh_inferiorparietal_volume.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_thickness.html">mittlere kortikale Dicke</a></h3>
+<img src="../../figs/parc35_thickness/lh_inferiorparietal_thickness.png" alt="lh_inferiorparietal_thickness.png not found" width="35%">
+<img src="../../figs/parc35_thickness/ai_inferiorparietal_thickness.png" alt="ai_inferiorparietal_thickness.png not found" width="28%">
+<img src="../../figs/parc35_thickness/rh_inferiorparietal_thickness.png" alt="rh_inferiorparietal_thickness.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_thicknessstd.html">Standardabweichung der kortikalen Dicke</a></h3>
+<img src="../../figs/parc35_thicknessstd/lh_inferiorparietal_thicknessstd.png" alt="lh_inferiorparietal_thicknessstd.png not found" width="35%">
+<img src="../../figs/parc35_thicknessstd/ai_inferiorparietal_thicknessstd.png" alt="ai_inferiorparietal_thicknessstd.png not found" width="28%">
+<img src="../../figs/parc35_thicknessstd/rh_inferiorparietal_thicknessstd.png" alt="rh_inferiorparietal_thicknessstd.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_meancurv.html">mittlere Kr&uuml;mmung</a></h3>
+<img src="../../figs/parc35_meancurv/lh_inferiorparietal_meancurv.png" alt="lh_inferiorparietal_meancurv.png not found" width="35%">
+<img src="../../figs/parc35_meancurv/ai_inferiorparietal_meancurv.png" alt="ai_inferiorparietal_meancurv.png not found" width="28%">
+<img src="../../figs/parc35_meancurv/rh_inferiorparietal_meancurv.png" alt="rh_inferiorparietal_meancurv.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_gauscurv.html">Gauss&acute;sche Kr&uuml;mmung</a></h3>
+<img src="../../figs/parc35_gauscurv/lh_inferiorparietal_gauscurv.png" alt="lh_inferiorparietal_gauscurv.png not found" width="35%">
+<img src="../../figs/parc35_gauscurv/ai_inferiorparietal_gauscurv.png" alt="ai_inferiorparietal_gauscurv.png not found" width="28%">
+<img src="../../figs/parc35_gauscurv/rh_inferiorparietal_gauscurv.png" alt="rh_inferiorparietal_gauscurv.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_foldind.html">Faltungsindex</a></h3>
+<img src="../../figs/parc35_foldind/lh_inferiorparietal_foldind.png" alt="lh_inferiorparietal_foldind.png not found" width="35%">
+<img src="../../figs/parc35_foldind/ai_inferiorparietal_foldind.png" alt="ai_inferiorparietal_foldind.png not found" width="28%">
+<img src="../../figs/parc35_foldind/rh_inferiorparietal_foldind.png" alt="rh_inferiorparietal_foldind.png not found" width="35%">
+
+<h3>inferiorparietal -- <a href="../measurebased/parc_curvind.html">Kr&uuml;mmungsindex</a></h3>
+<img src="../../figs/parc35_curvind/lh_inferiorparietal_curvind.png" alt="lh_inferiorparietal_curvind.png not found" width="35%">
+<img src="../../figs/parc35_curvind/ai_inferiorparietal_curvind.png" alt="ai_inferiorparietal_curvind.png not found" width="28%">
+<img src="../../figs/parc35_curvind/rh_inferiorparietal_curvind.png" alt="rh_inferiorparietal_curvind.png not found" width="35%">
+
+

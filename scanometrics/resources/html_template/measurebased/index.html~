@@ -1,0 +1,46 @@
+
+<h3>global</h3>
+
+<ul>
+    <li><a href="pve_volume.html">Partialvolumina</a></li>
+</ul>
+
+<h3>subkortikale Segmentierungen</h3>
+
+<ul>
+    <li><a href="seg_volume.html">Volumen</a></li>
+</ul>
+
+<h3>35 kortikale Parzellierungen je Hemisph&auml;re</h3>
+
+<a href="https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation">Desikan-Killiany-Altas</a><br>
+geeignet z.B. bei Frage nach ausgedehnter kortikaler Atrophie (Demenz etc.)
+
+<ul>
+    <li><a href="parc35_area.html">Oberfl&auml;che</a></li>
+    <li><a href="parc35_volume.html">Volumen</a> der grauen Substanz</li>
+    <li><a href="parc35_thickness.html">mittlere kortikale Dicke</a></li>
+    <li><a href="parc35_thicknessstd.html">Standardabweichung der kortikalen Dicke</a></li>
+    <li>mittlere <a href="parc35_meancurv.html">Kr&uuml;mmung</a></li>
+    <li>Gauss&acute;sche <a href="parc35_gauscurv.html">Kr&uuml;mmung</a></li>
+    <li><a href="parc35_foldind.html">Faltungsindex</a></li>
+    <li><a href="parc35_curvind.html">Kr&uuml;mmungsindex</a></li>
+</ul>
+
+<h3>75 kortikale Parzellierungen je Hemisph&auml;re</h3>
+
+<a href="https://surfer.nmr.mgh.harvard.edu/fswiki/CorticalParcellation">Destrieux-Altas</a><br>
+geeignet z.B. bei Frage nach fokaler kortikaler Dysplasie (Epilepsie etc.)
+
+<ul>
+    <li><a href="parc75_area.html">Oberfl&auml;che</a></li>
+    <li><a href="parc75_volume.html">Volumen</a> der grauen Substanz</li>
+    <li><a href="parc75_thickness.html">mittlere kortikale Dicke</a></li>
+    <li><a href="parc75_thicknessstd.html">Standardabweichung der kortikalen Dicke</a></li>
+    <li>mittlere <a href="parc75_meancurv.html">Kr&uuml;mmung</a></li>
+    <li>Gauss&acute;sche <a href="parc75_gauscurv.html">Kr&uuml;mmung</a></li>
+    <li><a href="parc75_foldind.html">Faltungsindex</a></li>
+    <li><a href="parc75_curvind.html">Kr&uuml;mmungsindex</a></li>
+</ul>
+
+
