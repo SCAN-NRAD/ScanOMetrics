@@ -949,7 +949,7 @@ class proc_pipeline:
         :return:
         """
 
-        metric_names = []
+        metric_names = ["Dummy_col"]
         metric_values = np.zeros((len(subjSesAcq_list), 1))  # Initialize array, to be trimmed out after 1st set of metrics
         # Loop over first table to get ID order, to be used to reorder tables without IDs according to subjSesAcq_list
         loaded_IDs = []
@@ -1000,6 +1000,7 @@ class proc_pipeline:
         logging.PRINT('len(metric_names)=%d' % (len(metric_names)))
         logging.PRINT('Index of asegvolume_EstimatedTotalIntraCranialVol is %d' % (metric_names.index('asegvolume_EstimatedTotalIntraCranialVol')))
         metric_values = metric_values[:, 1:]  # Trim out 1st column used to initialize array
+        metric_names = metric_names[1:]
         for hemi in ['rh', 'lh']:
             for metric in self.parc35_metrics:
                 if metric not in ['pctmean', 'lgimean']:
