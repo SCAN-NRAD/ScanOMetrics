@@ -504,7 +504,9 @@ class proc_pipeline:
         TIVproxy_columns = []
         for TIVproxy_roi in self.TIVproxy_ROIs:
             TIVproxy_columns.append(metric_names.index('asegvolume_%s' % TIVproxy_roi))
-        metric_values = np.hstack((metric_values, np.nansum(metric_values[:, TIVproxy_columns], axis=1)[:, None]))
+        TIV = np.sum(metric_values[:, TIVproxy_columns], axis=1)[:, None]  # sets TIV to NaN when there's a missing subvolume
+        TIV[np.argwhere(TIV==0)[:, 0]] = np.nan  # In case subvolumes have been set to 0
+        metric_values = np.hstack((metric_values, TIV))
         metric_names.append('asegvolume_EstimatedTotalIntraCranialVol')
         logging.PRINT('Index of asegvolume_EstimatedTotalIntraCranialVol is %d' % (metric_names.index('asegvolume_EstimatedTotalIntraCranialVol')))
         # Make it 2D
@@ -583,7 +585,7 @@ class proc_pipeline:
         :type metric_exclude: list
         """
 
-        metric_names = []
+        metric_names = ["Dummy_col"]
         metric_values = np.zeros((len(subjSesAcq_list), 1))  # Initialize array, to be trimmed out after 1st set of metrics
         # Loop over first table to get ID order, to be used to reorder tables without IDs according to subjSesAcq_list
         loaded_IDs = []
@@ -635,10 +637,13 @@ class proc_pipeline:
         TIVproxy_columns = []
         for TIVproxy_roi in self.TIVproxy_ROIs:
             TIVproxy_columns.append(metric_names.index('asegvolume_%s' % TIVproxy_roi))
-        metric_values = np.hstack((metric_values, np.nansum(metric_values[:, TIVproxy_columns], axis=1)[:, None]))
+        TIV = np.sum(metric_values[:, TIVproxy_columns], axis=1)[:, None]  # sets TIV to NaN when there's a missing subvolume
+        TIV[np.argwhere(TIV==0)[:, 0]] = np.nan  # In case subvolumes have been set to 0
+        metric_values = np.hstack((metric_values, TIV))
         metric_names.append('asegvolume_EstimatedTotalIntraCranialVol')
         logging.PRINT('Index of asegvolume_EstimatedTotalIntraCranialVol is %d' % (metric_names.index('asegvolume_EstimatedTotalIntraCranialVol')))
         metric_values = metric_values[:, 1:]  # Trim out 1st column used to initialize array
+        metric_names = metric_names[1:]
         for hemi in ['rh', 'lh']:
             for metric in self.parc35_metrics:
                 stats2table_file = os.path.join(stats2table_folder, '%s.aparc_stats_%s.txt' % (hemi, metric))
