@@ -20,7 +20,7 @@ import re
 
 class proc_pipeline:
 
-    def __init__(self, bids_database, dldirect_version='1.0.0', load_from_ID=True, subjSesAcq_delimiter="_"):
+    def __init__(self, bids_database, dldirect_version='1.0.0', load_from_ID=True, ses_delimiter="_", acq_delimiter="_"):
         """
         DL+DiReCT processing pipeline constructor. Sets the bids path where derivatives/dldirect is or will be stored.
         Allows specifying the version of dldirect to use. The `load_from_ID` parameter can be set to False when loading
@@ -40,7 +40,8 @@ class proc_pipeline:
         self.dldirect_version = dldirect_version
         self.subjects_dir = os.path.join(bids_database, 'derivatives', self.proc_pipeline_name)
         self.load_from_ID = load_from_ID
-        self.subjSesAcq_delimiter = subjSesAcq_delimiter
+        self.ses_delimiter = ses_delimiter
+        self.acq_delimiter = acq_delimiter
         self.setting = {'DL_DiReCT_condaenv': 'DL_DiReCT', 'model': 'v0'}
         self.seg_metrics = ['volume']
         self.parc35_metrics = ['volume', 'thickness', 'thicknessstd']
@@ -632,6 +633,25 @@ class proc_pipeline:
                             logging.PRINT('Exiting if statement')
                         metric_names += tmp_metric_names
                         metric_values = np.hstack((metric_values, table_to_fill))  # append all values in current table file to metric_values
+        if 'asegvolume_Left-Lateral-Ventricle' in metric_names and 'asegvolume_Right-Lateral-Ventricle' and 'asegvolume_Left-Inf-Lat-Vent' in metric_names and 'asegvolume_Right-Inf-Lat-Vent' in metric_names:
+            tmp_left = metric_values[:, metric_names.index('asegvolume_Left-Lateral-Ventricle')] + metric_values[:, metric_names.index('asegvolume_Left-Inf-Lat-Vent')]
+            if 'asegvolume_Left-Ventricle-all' in metric_names:
+                missing_idxs = np.argwhere(np.isnan(metric_values[:, metric_names.index('asegvolume_Left-Ventricle-all')]))[:, 0]
+                metric_values[missing_idxs, metric_names.index('asegvolume_Left-Ventricle-all')] = tmp_left[missing_idxs]
+            else:
+                metric_names[metric_names.index('asegvolume_Left-Lateral-Ventricle')] = 'asegvolume_Left-Ventricle-all'
+                metric_values = np.delete(metric_values, metric_names.index('asegvolume_Left-Inf-Lat-Vent'), 1)
+                metric_names.remove('asegvolume_Left-Inf-Lat-Vent')
+                metric_values[:, metric_names.index('asegvolume_Left-Ventricle-all')] = tmp_left.copy()
+            tmp_right = metric_values[:, metric_names.index('asegvolume_Right-Lateral-Ventricle')] + metric_values[:, metric_names.index('asegvolume_Right-Inf-Lat-Vent')]
+            if 'asegvolume_Right-Ventricle-all' in metric_names:
+                missing_idxs = np.argwhere(np.isnan(metric_values[:, metric_names.index('asegvolume_Right-Ventricle-all')]))[:, 0]
+                metric_values[missing_idxs, metric_names.index('asegvolume_Right-Ventricle-all')] = tmp_right[missing_idxs]
+            else:
+                metric_names[metric_names.index('asegvolume_Right-Lateral-Ventricle')] = 'asegvolume_Right-Ventricle-all'
+                metric_values = np.delete(metric_values, metric_names.index('asegvolume_Right-Inf-Lat-Vent'), 1)
+                metric_names.remove('asegvolume_Right-Inf-Lat-Vent')
+                metric_values[:, metric_names.index('asegvolume_Right-Ventricle-all')] = tmp_right.copy()
         logging.PRINT('Loaded metric_names are %s' % (', '.join(metric_names)))
         logging.PRINT('len(metric_names)=%d' % (len(metric_names)))
         TIVproxy_columns = []
@@ -1122,28 +1142,23 @@ class proc_pipeline:
         for subj_id in subjects.keys():
             for ses_id in subjects[subj_id].keys():
                 for acq_id in subjects[subj_id][ses_id].keys():
-                    """if ses_id == '':
-                        subject_IDmergedSes.append('%s_%s' % (subj_id, acq_id))
-                    else:
-                        subject_IDmergedSes.append('%s_%s_%s' % (subj_id, ses_id, acq_id))"""
-                    subjSesAcq_id = [subj_id, ses_id, acq_id]
-                    while("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subject_IDmergedSes.append(self.subjSesAcq_delimiter.join(subjSesAcq_id))
+                    new_id = self.get_subjSesAcq_id(subj_id, ses_id, acq_id)
+                    subject_IDmergedSes.append(new_id)
         return subject_IDmergedSes
 
     def get_subjSesAcq_row(self, subjects, subject_id, session_id, acq_label):
         """Quick and dirty way of getting row index for measured_metrics and covariate_values"""
         subject_IDmergedSes = self.get_subjSesAcq_array(subjects)
-        """if session_id == '':
-            subjSesAcq_id = '%s_%s' % (subject_id, acq_label)
-        else:
-            subjSesAcq_id = '%s_%s_%s' % (subject_id, session_id, acq_label)"""
-        subjSesAcq_id = [subject_id, session_id, acq_label]
-        while("" in subjSesAcq_id):
-            subjSesAcq_id.remove("")
-        subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+        subjSesAcq_id = self.get_subjSesAcq_id(subject_id, session_id, acq_label)
         return subject_IDmergedSes.index(subjSesAcq_id)
+
+    def get_subjSesAcq_id(self, subject_id, session_id, acq_label):
+        subjSesAcq_id = subject_id
+        if session_id != "":
+            subjSesAcq_id += self.ses_delimiter+session_id
+        if acq_label != "":
+            subjSesAcq_id += self.acq_delimiter+acq_label
+        return subjSesAcq_id
 
     def get_subjSesAcq_T1s(self, subjects):
         subjSesAcq_list = []
@@ -1151,10 +1166,7 @@ class proc_pipeline:
         for subj_id in subjects.keys():
             for ses_id in subjects[subj_id].keys():
                 for acq_label in subjects[subj_id][ses_id].keys():
-                    subjSesAcq_id = [subj_id, ses_id, acq_label]
-                    while("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, ses_id, acq_label)
                     T1_file = os.path.join(self.bids_database, subj_id, ses_id, 'anat', '%s.nii.gz' % subjSesAcq_id)
                     if os.path.exists(T1_file):
                         subjSesAcq_list.append(subjSesAcq_id)

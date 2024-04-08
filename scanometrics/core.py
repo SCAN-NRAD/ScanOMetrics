@@ -32,7 +32,7 @@ class ScanOMetrics_project:
     ###############
 
     def __init__(self, bids_database, proc_pipeline='dldirect', dataset_id=None, cov2float={'sex': {'M': 0, 'm': 0,
-        'F': 1, 'f': 1}}, acq_pattern='*T1w', subjSesAcq_delimiter="_", n_threads=-1):
+        'F': 1, 'f': 1}}, acq_pattern='*T1w', ses_delimiter="_", acq_delimiter="_", n_threads=-1):
         """
         ScanOMetrics_project constructor from bids_database path. BIDS database should at least contain a participants.tsv
         file to load subject names and fixed covariate_values. Pipeline for data processing can be set through the
@@ -63,7 +63,8 @@ class ScanOMetrics_project:
         self.bids_database = bids_database
         # Reset list of subjects (loaded by user calling self.load_subjects())
         self.subject = {}
-        self.subjSesAcq_delimiter = subjSesAcq_delimiter
+        self.ses_delimiter = ses_delimiter
+        self.acq_delimiter = acq_delimiter
         # Reset metrics array and metric_names, to be filled when calling self.load_subjects()
         self.measured_metrics = {'orig': np.array([], dtype='float'), 'norm': np.array([], dtype='float')}
         self.covariate_values = np.array([], dtype='float')
@@ -116,7 +117,7 @@ class ScanOMetrics_project:
                 if k in self.cov2float.keys():
                     row[k] = self.cov2float[k][row[k]]
                 else:
-                    logging.ERROR('ValueError (' + str(ve) + ') when running load_subjects(). Try adding categorical to'
+                    logging.ERROR('ValueError for %s key (' % (k) + str(ve) + ') when running load_subjects(). Try adding categorical to'
                                   'numerical mapping in the cov2float dictionary when creating the ScanOMetrics_project'
                                   'and run load_subjects() again. Check that input covariate files do not have "NA", '
                                   '"na", "N/A" etc... entries instead of "NaN", "nan", or "NAN" and replace them '
@@ -226,8 +227,8 @@ class ScanOMetrics_project:
                             if k in self.cov2float.keys():
                                 row[k] = self.cov2float[k][row[k]]
                             else:
-                                logging.ERROR('ValueError (' + str(
-                                    ve) + ') when running load_subjects(). Try adding categorical to'
+                                logging.ERROR('ValueError for key %s, value "%s" and scan %s_%s_%s (error message was "' % (k, row[k], subj_id, ses_id, acq_label) + str(
+                                    ve) + '") when running load_subjects(). Try adding categorical to'
                                           'numerical mapping in the cov2float dictionary when creating the ScanOMetrics_project'
                                           'and run load_subjects() again. Check that input covariate files do not have "NA", '
                                           '"na", "N/A" etc... entries instead of "NaN", "nan", or "NAN" and replace them '
@@ -246,7 +247,7 @@ class ScanOMetrics_project:
                             if acq_label not in self.subject[subj_id][ses_id].keys():
                                 self.subject[subj_id][ses_id][acq_label] = {}
                                 for covariate_name in self.covariate_names:
-                                    self.subject[subj_id][ses_id][aqc_id][covariate_name] = row[covariate_name]
+                                    self.subject[subj_id][ses_id][acq_label][covariate_name] = row[covariate_name]
         else:
             # Build covariate_names
             if covariates_include is not None:
@@ -333,7 +334,7 @@ class ScanOMetrics_project:
         `scanometrics/processing/<metric_proc_pipeline>.py`.
         """
         if hasattr(processing, metric_proc_pipeline):
-            self.metric_proc_pipeline = getattr(processing, metric_proc_pipeline).proc_pipeline(self.bids_database, subjSesAcq_delimiter=self.subjSesAcq_delimiter)
+            self.metric_proc_pipeline = getattr(processing, metric_proc_pipeline).proc_pipeline(self.bids_database, ses_delimiter=self.ses_delimiter, acq_delimiter=self.acq_delimiter)
         else:
             logging.ERROR("""Processing pipeline %s not found in scanometrics.processing module. Make sure the module file
 exists, that it has been added to the __init__.py file, and that scanometrics is up-to-date"
@@ -509,14 +510,8 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         for sub_id in self.subject.keys():
             for ses_id in self.subject[sub_id].keys():
                 for acq_label in self.subject[sub_id][ses_id].keys():
-                    """if ses_id == '':
-                        subjSesAcq_id = '%s_%s' % (sub_id, acq_label)
-                    else:
-                        subjSesAcq_id = '%s_%s_%s' % (sub_id, ses_id, acq_label)"""
-                    subjSesAcq_id = [sub_id, ses_id, acq_label]
-                    while("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subject_IDmergedSes.append(self.subjSesAcq_delimiter.join(subjSesAcq_id))
+                    subjSesAcq_id = self.get_subjSesAcq_id(sub_id, ses_id, acq_label)
+                    subject_IDmergedSes.append(subjSesAcq_id)
         return subject_IDmergedSes
 
     def get_subjSesAcq_T1s(self):
@@ -527,14 +522,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         for subj_id in self.subject.keys():
             for ses_id in self.subject[subj_id].keys():
                 for acq_label in self.subject[subj_id][ses_id].keys():
-                    """if ses_id == '':
-                        subjSesAcqs_T1s.append(os.path.join(self.bids_database, subj_id, 'anat', '%s_%s.nii.gz' % (subj_id, acq_label)))
-                    else:
-                        subjSesAcqs_T1s.append(os.path.join(self.bids_database, subj_id, ses_id, 'anat', '%s_%s_%s.nii.gz' % (subj_id, ses_id, acq_label)))"""
-                    subjSesAcq_id = [sub_id, ses_id, acq_label]
-                    while ("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, ses_id, acq_label)
                     subjSesAcqs_T1s.append(os.path.join(self.bids_database, subj_id, ses_id, 'anat', '%s.nii.gz' % subjSesAcq_id))
         return subjSesAcqs_T1s
 
@@ -544,15 +532,19 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         Get row index for particular subject, session and acq_label (returns a single value).
         """
         subject_IDmergedSes = self.get_subjSesAcq_array()
-        """if session_id == '':
-            subjSesAcq_id = '%s_%s' % (subject_id, acq_label)
-        else:
-            subjSesAcq_id = '%s_%s_%s' % (subject_id, session_id, acq_label)"""
-        subjSesAcq_id = [subject_id, session_id, acq_label]
-        while("" in subjSesAcq_id):
-            subjSesAcq_id.remove("")
-        subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+        subjSesAcq_id = self.get_subjSesAcq_id(subject_id, session_id, acq_label)
         return subject_IDmergedSes.index(subjSesAcq_id)
+
+    def get_subjSesAcq_id(self, subject_id, session_id, acq_label):
+        """
+        Get row index for particular subject, session and acq_label (returns a single value).
+        """
+        subjSesAcq_id = subject_id
+        if session_id != "":
+            subjSesAcq_id += self.ses_delimiter+session_id
+        if acq_label != "":
+            subjSesAcq_id += self.acq_delimiter+acq_label
+        return subjSesAcq_id
 
     def get_subj_rows(self, subject_id):
         """
@@ -562,14 +554,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         subject_IDmergedSes = self.get_subjSesAcq_array()
         for session_id in self.subject[subject_id].keys():
             for acq_label in self.subject[subject_id][session_id].keys():
-                """if session_id == '':
-                    subjSesAcq_id = '%s_%s' % (subject_id, acq_label)
-                else:
-                    subjSesAcq_id = '%s_%s_%s' % (subject_id, session_id, acq_label)"""
-                subjSesAcq_id = [subject_id, session_id, acq_label]
-                while("" in subjSesAcq_id):
-                    subjSesAcq_id.remove("")
-                subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+                subjSesAcq_id = self.get_subjSesAcq_id(subject_id, session_id, acq_label)
                 subSes_rows.append(subject_IDmergedSes.index(subjSesAcq_id))
         return np.array(subSes_rows)
 
@@ -1014,6 +999,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
             output[k]['gp-vs-gp_pvals'] = np.full((len(normModel_cols)), np.nan)
             output[k]['gp-vs-gp_logps'] = np.full((len(normModel_cols)), np.nan)
             output[k]['gp-vs-gp_cohen-d'] = np.full((len(normModel_cols)), np.nan)
+            output[k]['metric_names'] = [metric_names[m] for m in np.argwhere(np.isfinite(normModel_cols))[:, 0]]
             # Extract scan metrics
             subj_measured_metrics = self.measured_metrics[k][subj_rows, :]
             if len(subj_measured_metrics.shape) == 1:
