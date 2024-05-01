@@ -999,7 +999,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
             output[k]['gp-vs-gp_pvals'] = np.full((len(normModel_cols)), np.nan)
             output[k]['gp-vs-gp_logps'] = np.full((len(normModel_cols)), np.nan)
             output[k]['gp-vs-gp_cohen-d'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['metric_names'] = [metric_names[m] for m in np.argwhere(np.isfinite(normModel_cols))[:, 0]]
+            output[k]['metric_names'] = [metric_names[int(m)] for m in normModel_cols if not np.isnan(m)]
             # Extract scan metrics
             subj_measured_metrics = self.measured_metrics[k][subj_rows, :]
             if len(subj_measured_metrics.shape) == 1:
