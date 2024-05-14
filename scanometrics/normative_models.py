@@ -227,11 +227,6 @@ class Polynomial(normative_model_template):
         if 'age' not in self.covariate_names:
             logging.ERROR("Covariates in 'Polynomial' normative model requires at least an 'age' variable.")
 
-        if global_deg_max is None:
-            deg_max = int(2 * np.floor(np.log(self.covariate_values.shape[0]/10)+1)-1)  # according to https://www.frontiersin.org/articles/10.3389/fnins.2010.00058/full
-        else:
-            deg_max = global_deg_max
-
         # Supposed to sample uniformly wrt age, but width of zero means all subjects are selected...
         # Setting uniform_selection to ones instead of calling uniform_subsample
         if N_cycl == 0:
@@ -245,6 +240,10 @@ class Polynomial(normative_model_template):
         self.age_vec = np.arange(np.floor(age.min()), np.ceil(age.max()) + 1)
         self.fit_outputs = {}
         for metric_status in self.measured_metrics.keys():
+            if global_deg_max is None:
+                deg_max = int(2 * np.floor(np.log(self.covariate_values.shape[0] / 10) + 1) - 1)  # according to https://www.frontiersin.org/articles/10.3389/fnins.2010.00058/full
+            else:
+                deg_max = global_deg_max
             self.fit_outputs[metric_status] = {'fit_deg': np.full((self.measured_metrics[metric_status].shape[1], N_cycl), np.nan),
                                                'fit_coeffs': np.zeros((deg_max + 1, self.measured_metrics[metric_status].shape[1], N_cycl)),
                                                'fit_good': np.zeros((self.measured_metrics[metric_status].shape[1], N_cycl)),

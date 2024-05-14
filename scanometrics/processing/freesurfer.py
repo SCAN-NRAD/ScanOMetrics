@@ -18,13 +18,14 @@ from multiprocessing import Process, cpu_count
 
 class proc_pipeline:
 
-    def __init__(self, bids_database, fs_version='6.0.0', compute_lgi=False, load_from_ID=True, subjSesAcq_delimiter="_"):
+    def __init__(self, bids_database, fs_version='6.0.0', compute_lgi=False, load_from_ID=True, ses_delimiter="_", acq_delimiter="_"):
         self.bids_database = bids_database
         self.proc_pipeline_name = 'freesurfer'
         self.fs_version = fs_version
         self.subjects_dir = os.path.join(bids_database, 'derivatives', self.proc_pipeline_name)
         self.load_from_ID = load_from_ID
-        self.subjSesAcq_delimiter = subjSesAcq_delimiter
+        self.ses_delimiter = ses_delimiter
+        self.acq_delimiter = acq_delimiter
         # global variables
         self.atlases = {'6.0.0': {'DesikanKilliany': {'ROIs': ['bankssts', 'caudalanteriorcingulate', 'caudalmiddlefrontal', 'cuneus', 'entorhinal', 'fusiform', 'inferiorparietal', 'inferiortemporal', 'isthmuscingulate', 'lateraloccipital', 'lateralorbitofrontal', 'lingual', 'medialorbitofrontal', 'middletemporal', 'parahippocampal', 'paracentral', 'parsopercularis', 'parsorbitalis', 'parstriangularis', 'pericalcarine', 'postcentral', 'posteriorcingulate', 'precentral', 'precuneus', 'rostralanteriorcingulate', 'rostralmiddlefrontal', 'superiorfrontal', 'superiorparietal', 'superiortemporal', 'supramarginal', 'frontalpole', 'temporalpole', 'transversetemporal', 'insula'],
                                               'views': ['lateral',                  'medial',             'lateral', 'medial',     'medial',   'medial',          'lateral',          'lateral',       'medial',              'lateral',              'lateral',  'medial',              'medial',        'lateral',          'medial',      'medial',         'lateral',       'lateral',          'lateral',        'medial',     'lateral',             'medial',    'lateral',    'medial',                   'medial',              'lateral',         'lateral',          'lateral',          'lateral',       'lateral',      'medial',       'medial',            'lateral', 'lateral']},
@@ -1575,38 +1576,30 @@ class proc_pipeline:
         for subj_id in subjects.keys():
             for ses_id in subjects[subj_id].keys():
                 for acq_id in subjects[subj_id][ses_id].keys():
-                    """if ses_id == '':
-                        subject_IDmergedSes.append('%s_%s' % (subj_id, acq_id))
-                    else:
-                        subject_IDmergedSes.append('%s_%s_%s' % (subj_id, ses_id, acq_id))"""
-                    subjSesAcq_id = [subj_id, ses_id, acq_id]
-                    while("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subject_IDmergedSes.append(self.subjSesAcq_delimiter.join(subjSesAcq_id))
+                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, ses_id, acq_id)
+                    subject_IDmergedSes.append(subjSesAcq_id)
         return subject_IDmergedSes
 
     def get_subjSesAcq_row(self, subjects, subject_id, session_id, acq_id):
         """Quick and dirty way of getting row index for measured_metrics and covariate_values"""
         subject_IDmergedSes = self.get_subjSesAcq_array(subjects)
-        """if session_id == '':
-            subjSesAcq_id = '%s_%s' % (subject_id, acq_id)
-        else:
-            subjSesAcq_id = '%s_%s_%s' % (subject_id, session_id, acq_id)"""
-        subjSesAcq_id = [subject_id, session_id, acq_id]
-        while("" in subjSesAcq_id):
-            subjSesAcq_id.remove("")
-        subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+        subjSesAcq_id = self.get_subjSesAcq_id(subject_id, session_id, acq_id)
         return subject_IDmergedSes.index(subjSesAcq_id)
+
+    def get_subjSesAcq_id(self, subject_id, session_id, acq_id):
+        subjSesAcq_id = subject_id
+        if session_id != "":
+            subjSesAcq_id += self.ses_delimiter+session_id
+        if acq_id != "":
+            subjSesAcq_id += self.acq_delimiter+acq_id
+        return subjSesAcq_id
 
     def get_subjSesAcq_T1s(self, subjects):
         subjSesAcqs_T1s = []
         for subj_id in subjects.keys():
             for sess_id in subjects[subj_id].keys():
                 for acq_label in subjects[subj_id][sess_id].keys():
-                    subjSesAcq_id = [subj_id, ses_id, acq_label]
-                    while("" in subjSesAcq_id):
-                        subjSesAcq_id.remove("")
-                    subjSesAcq_id = self.subjSesAcq_delimiter.join(subjSesAcq_id)
+                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, sess_id, acq_label)
                     T1_file = os.path.join(self.bids_database, subj_id, ses_id, 'anat', '%s.nii.gz' % subjSesAcq_id)
                     if os.path.exists(T1_file):
                         subjSesAcq_list.append(subjSesAcq_id)

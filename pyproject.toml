@@ -23,4 +23,4 @@ dependencies = [
 dynamic = ["version", "description"]
 
 [project.scripts]
-scanometrics = "scripts.scanometrics:main"
+scanometrics = "scanometrics.scripts.scanometrics:main"
