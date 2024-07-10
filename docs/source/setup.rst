@@ -5,7 +5,7 @@ Setup
 
 Create virtual environment (optional)
 -------------------------------------
-Download and install `Miniconda <https://conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_ and
+Download and install `Miniconda <https://conda.io/projects/conda/en/latest/user-guide/install/linux.html>`__ and
 create a new conda environment:
 
 .. code-block:: console
@@ -36,14 +36,14 @@ Data formatting
 ---------------
 
 ScanOMetrics heavily relies on the dataset structure to follow the format recommended by
-the `BIDS initiative on Brain Imaging Data Structure <https://bids.neuroimaging.io/>`_. Make
+the `BIDS initiative on Brain Imaging Data Structure <https://bids.neuroimaging.io/>`__. Make
 sure your data is properly organized before running ScanOMetrics.
 
 Processing MRI data
 -------------------
 
-ScanOMetrics relies on either `Freesurfer <https://surfer.nmr.mgh.harvard.edu/>`_ or
-`DL+DiReCT <https://github.com/SCAN-NRAD/DL-DiReCT>`_ to process MRI scans available in BIDS directories.
+ScanOMetrics relies on either `Freesurfer <https://surfer.nmr.mgh.harvard.edu/>`__ or
+`DL+DiReCT <https://github.com/SCAN-NRAD/DL-DiReCT>`__ to process MRI scans available in BIDS directories.
 Check out the tutorial on `MRI processing <./tutorials/process_MRI_scans.html>`_ for more details.
 
 Single subject evaluation
