@@ -20,6 +20,10 @@ how to :ref:`install <installation>` our app.
    A Fully Automated Pipeline for Normative Atrophy in Patients with Neurodegenerative Disease.
    Front Neurol., 8:727 (2018). https://doi.org/10.3389/fneur.2017.00727
 
+   Romascano D, Rebsamen M, Radojewski P, Blattner T, McKinley R, Wiest R, Rummel C.
+   Cortical thickness and grey-matter volume anomaly detection in individual MRI scans: Comparison of two methods.
+   Neuroimage Clin. 43:103624 (2024). https://doi.org/10.1016/j.nicl.2024.103624
+
 
 Contents
 --------
