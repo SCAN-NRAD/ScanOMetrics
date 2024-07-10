@@ -20,7 +20,7 @@ Installation
 
    ScanOMetrics is distributed with normative models that include training data, which are large files (up to 250 Mb).
    If you want the corresponding `.pkl` files to be downloaded when you clone the respository, you need to have `lfs`
-   (large file storage) installed, as explained [here](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage)
+   (large file storage) installed, as explained `here <https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage>`_
 
 You can install ScanOMetrics by cloning the code from and using `pip`. First `cd` to the
 folder you want to download ScanOMetrics to, and run the following (a `scanometrics` folder
