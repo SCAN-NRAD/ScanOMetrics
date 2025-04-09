@@ -5,9 +5,11 @@ proc_pipeline_name, and methods as run(), and proc2metric().
 
 
 from shutil import rmtree, which
+from glob import glob
 import subprocess
 import numpy as np
 import os
+import re
 from scanometrics.utils import logging
 from csv import DictReader
 from numpy.polynomial import Polynomial as poly_model
@@ -15,18 +17,27 @@ from nibabel.freesurfer.io import read_annot, write_annot
 from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
 from multiprocessing import Process, cpu_count
+from packaging.version import Version
+
+
+aparc_code = {'DesikanKilliany': 'aparc', 'Destrieux': 'aparca2009s'}
 
 class proc_pipeline:
 
-    def __init__(self, bids_database, fs_version='6.0.0', compute_lgi=False, load_from_ID=True, ses_delimiter="_", acq_delimiter="_"):
+    def __init__(self, bids_database, compute_lgi=False, load_from_ID=True, ses_delimiter="_", acq_delimiter="_", atlas="DesikanKilliany"):
         self.bids_database = bids_database
-        self.proc_pipeline_name = 'freesurfer'
-        self.fs_version = fs_version
+        try:
+            regex = r'(\d+\.\d+\.\d+)'
+            self.version = re.search(regex, subprocess.check_output(["recon-all", "-version"]).decode("utf-8")).group(1)
+        except FileNotFoundError:
+            logging.ERROR("Path to `recon-all` not found, make sure to set FREESURFER_HOME to the appropriate path, and source $FREESURFER_HOME/SetUpFreeSurfer.sh")
+        self.proc_pipeline_name = 'freesurfer_v%s_%s' % (self.version.replace('.', '-'), atlas)
         self.subjects_dir = os.path.join(bids_database, 'derivatives', self.proc_pipeline_name)
         self.load_from_ID = load_from_ID
         self.ses_delimiter = ses_delimiter
         self.acq_delimiter = acq_delimiter
         # global variables
+        self.atlas = atlas
         self.atlases = {'6.0.0': {'DesikanKilliany': {'ROIs': ['bankssts', 'caudalanteriorcingulate', 'caudalmiddlefrontal', 'cuneus', 'entorhinal', 'fusiform', 'inferiorparietal', 'inferiortemporal', 'isthmuscingulate', 'lateraloccipital', 'lateralorbitofrontal', 'lingual', 'medialorbitofrontal', 'middletemporal', 'parahippocampal', 'paracentral', 'parsopercularis', 'parsorbitalis', 'parstriangularis', 'pericalcarine', 'postcentral', 'posteriorcingulate', 'precentral', 'precuneus', 'rostralanteriorcingulate', 'rostralmiddlefrontal', 'superiorfrontal', 'superiorparietal', 'superiortemporal', 'supramarginal', 'frontalpole', 'temporalpole', 'transversetemporal', 'insula'],
                                               'views': ['lateral',                  'medial',             'lateral', 'medial',     'medial',   'medial',          'lateral',          'lateral',       'medial',              'lateral',              'lateral',  'medial',              'medial',        'lateral',          'medial',      'medial',         'lateral',       'lateral',          'lateral',        'medial',     'lateral',             'medial',    'lateral',    'medial',                   'medial',              'lateral',         'lateral',          'lateral',          'lateral',       'lateral',      'medial',       'medial',            'lateral', 'lateral']},
                                    'Destrieux': {'ROIs': ['G&S_frontomargin', 'G&S_occipital_inf', 'G&S_paracentral', 'G&S_subcentral', 'G&S_transv_frontopol', 'G&S_cingul-Ant', 'G&S_cingul-Mid-Ant', 'G&S_cingul-Mid-Post', 'G_cingul-Post-dorsal', 'G_cingul-Post-ventral', 'G_cuneus', 'G_front_inf-Opercular', 'G_front_inf-Orbital', 'G_front_inf-Triangul', 'G_front_middle', 'G_front_sup', 'G_Ins_lg&S_cent_ins', 'G_insular_short', 'G_occipital_middle', 'G_occipital_sup', 'G_oc-temp_lat-fusifor', 'G_oc-temp_med-Lingual', 'G_oc-temp_med-Parahip', 'G_orbital', 'G_pariet_inf-Angular', 'G_pariet_inf-Supramar', 'G_parietal_sup', 'G_postcentral', 'G_precentral', 'G_precuneus', 'G_rectus', 'G_subcallosal', 'G_temp_sup-G_T_transv', 'G_temp_sup-Lateral', 'G_temp_sup-Plan_polar', 'G_temp_sup-Plan_tempo', 'G_temporal_inf', 'G_temporal_middle', 'Lat_Fis-ant-Horizont', 'Lat_Fis-ant-Vertical', 'Lat_Fis-post', 'Pole_occipital', 'Pole_temporal', 'Medial_wall', 'S_calcarine', 'S_central', 'S_cingul-Marginalis', 'S_circular_insula_ant', 'S_circular_insula_inf', 'S_circular_insula_sup', 'S_collat_transv_ant', 'S_collat_transv_post', 'S_front_inf', 'S_front_middle', 'S_front_sup', 'S_interm_prim-Jensen', 'S_intrapariet&P_trans', 'S_oc_middle&Lunatus', 'S_oc_sup&transversal', 'S_occipital_ant', 'S_oc-temp_lat', 'S_oc-temp_med&Lingual', 'S_orbital_lateral', 'S_orbital_med-olfact', 'S_orbital-H_Shaped', 'S_parieto_occipital', 'S_pericallosal', 'S_postcentral', 'S_precentral-inf-part', 'S_precentral-sup-part', 'S_suborbital', 'S_subparietal', 'S_temporal_inf', 'S_temporal_sup', 'S_temporal_transverse'],
@@ -37,35 +48,46 @@ class proc_pipeline:
                                              'views': ['lateral', 'lateral', 'medial', 'lateral', 'lateral', 'medial', 'medial', 'medial', 'medial', 'medial', 'medial', 'lateral', 'lateral', 'lateral', 'lateral', 'medial', 'lateral', 'lateral', 'lateral', 'medial', 'medial', 'medial', 'medial', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'medial', 'medial', 'medial', 'lateral', 'lateral', 'medial', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'medial', 'lateral', 'medial', 'lateral', 'lateral', 'lateral', 'medial', 'medial', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'lateral', 'medial', 'lateral', 'lateral', 'lateral', 'medial', 'medial', 'lateral', 'lateral', 'lateral', 'medial', 'medial', 'lateral', 'lateral', 'lateral']}},
 
                         }
+        self.atlases['7.4.1'] = self.atlases['6.0.1']
 
-        self.lobe_ROIs = [['frontalLobe', ['caudalmiddlefrontal', 'lateralorbitofrontal', 'medialorbitofrontal',
-                                           'paracentral', 'parsopercularis', 'parsorbitalis', 'parstriangularis',
-                                           'precentral', 'rostralmiddlefrontal', 'superiorfrontal', 'frontalpole']],
-                          ['parietalLobe', ['inferiorparietal', 'postcentral', 'precuneus', 'superiorparietal', 'supramarginal']],
-                          ['occipitalLobe', ['cuneus', 'lateraloccipital', 'lingual', 'pericalcarine']],
-                          ['temporalLobe', ['bankssts', 'entorhinal', 'fusiform', 'inferiortemporal', 'middletemporal',
-                                            'parahippocampal', 'superiortemporal', 'temporalpole', 'transversetemporal']],
-                          ['cingulateLobe', ['caudalanteriorcingulate', 'isthmuscingulate', 'posteriorcingulate',
-                                             'rostralanteriorcingulate']],
-                          ['insulaLobe', ['insula']]]
+        self.lobe_ROIs = {'DesikanKilliany':
+                              [['frontalLobe', ['caudalmiddlefrontal', 'lateralorbitofrontal', 'medialorbitofrontal', 'paracentral', 'parsopercularis', 'parsorbitalis', 'parstriangularis', 'precentral', 'rostralmiddlefrontal', 'superiorfrontal', 'frontalpole']],
+                               ['parietalLobe', ['inferiorparietal', 'postcentral', 'precuneus', 'superiorparietal', 'supramarginal']],
+                               ['occipitalLobe', ['cuneus', 'lateraloccipital', 'lingual', 'pericalcarine']],
+                               ['temporalLobe', ['bankssts', 'entorhinal', 'fusiform', 'inferiortemporal', 'middletemporal', 'parahippocampal', 'superiortemporal', 'temporalpole', 'transversetemporal']],
+                               ['cingulateLobe', ['caudalanteriorcingulate', 'isthmuscingulate', 'posteriorcingulate', 'rostralanteriorcingulate']],
+                               ['insulaLobe', ['insula']]],
+                          'Destrieux':
+                              [['frontalLobe', ['G&S_frontomargin', 'G&S_frontomargin', 'G&S_paracentral', 'G&S_subcentral', 'G&S_transv_frontopol', # 'G&S_cingul-Ant' and 'G&S_cingul-Mid-Post'moved to cingulate lobe
+                                                'G_front_inf-Opercular', 'G_front_inf-Orbital', 'G_front_inf-Triangul', 'G_front_middle', 'G_front_sup', 'G_orbital', 'G_precentral', 'G_rectus', 'G_subcallosal', 'Lat_Fis-ant-Horizont', 'Lat_Fis-ant-Vertical', 'S_central', 'S_front_inf', 'S_front_middle', 'S_front_sup', 'S_orbital_lateral', 'S_orbital_med-olfact', # 'S_circular_insula_ant' moved to insula lobe
+                                                'S_orbital-H_Shaped', 'S_precentral-inf-part', 'S_precentral-sup-part', 'S_suborbital']],
+                               ['parietalLobe', ['G_occipital_sup', 'G_pariet_inf-Angular', 'G_pariet_inf-Supramar', 'G_parietal_sup', 'G_postcentral', 'G_precuneus', 'G_temp_sup-Plan_tempo', 'S_calcarine', # 'S_cingul-Marginalis' moved to cingulate lobe
+                                                 'S_interm_prim-Jensen', 'S_intrapariet&P_trans', 'S_oc_sup&transversal', 'S_parieto_occipital', 'S_postcentral', 'S_subparietal']],
+                               ['occipitalLobe', ['G&S_occipital_inf', 'G_cuneus', 'G_occipital_middle', 'G_oc-temp_med-Lingual', 'Pole_occipital', 'S_oc_middle&Lunatus', 'S_occipital_ant', 'S_oc-temp_med&Lingual']],
+                               ['temporalLobe', ['G_oc-temp_lat-fusifor', 'G_oc-temp_med-Parahip', 'G_temp_sup-G_T_transv', 'G_temp_sup-Lateral', 'G_temp_sup-Plan_polar', 'G_temporal_inf', 'G_temporal_middle', 'Pole_temporal', 'S_collat_transv_ant', 'S_collat_transv_post', 'S_oc-temp_lat', 'S_temporal_inf', 'S_temporal_sup', 'S_temporal_transverse']], # 'S_circular_insula_inf' moved to insula lobe
+                               ['cingulateLobe', ['G&S_cingul-Ant', 'G&S_cingul-Mid-Ant', 'G&S_cingul-Mid-Post', 'G_cingul-Post-dorsal', 'G_cingul-Post-ventral', 'S_cingul-Marginalis']],
+                               ['insula', ['G_Ins_lg&S_cent_ins', 'G_insular_short', 'S_circular_insula_ant', 'S_circular_insula_inf', 'S_circular_insula_sup']]]
+                          }
 
         self.set_settings(compute_lgi)
+
+    def update_version(self, version, atlas):
+        """Added function to update version, used mainly when loading a model that was trained with another version, to update software specific variables as subjects dir for dldirect"""
+        self.version = version
+        self.proc_pipeline_name = 'freesurfer_v%s_%s' % (self.version.replace('.', '-'), atlas)
+        self.subjects_dir = os.path.join(self.bids_database, 'derivatives', self.proc_pipeline_name)
 
     def set_settings(self, compute_lgi):
         self.recon_all_settings = {'compute_lgi': compute_lgi}
         self.seg_metrics = ['volume']
-        self.parc35_metrics = ['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind',
-                          'curvind', 'pctmean']
-        self.parc75_metrics = ['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind',
-                          'curvind', 'pctmean']
+        self.parc35_metrics = ['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind', 'curvind']
+        self.parc75_metrics = ['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind', 'curvind']
         self.parcSTD_metrics = ['mean', 'std', 'snr']
         if self.recon_all_settings['compute_lgi']:
-            self.parc35_metrics += ['area_pial', 'area_pial_outer_smoothed', 'gauscurv_pial_FS',
-                          'gauscurv_pial_outer_smoothed_FS']
-            self.parc75_metrics += ['area_pial', 'area_pial_outer_smoothed', 'gauscurv_pial_FS',
-                          'gauscurv_pial_outer_smoothed_FS']
+            self.parc35_metrics += ['area_pial', 'area_pial_outer_smoothed', 'gauscurv_pial_FS', 'gauscurv_pial_outer_smoothed_FS']
+            self.parc75_metrics += ['area_pial', 'area_pial_outer_smoothed', 'gauscurv_pial_FS', 'gauscurv_pial_outer_smoothed_FS']
 
-    def run_pipeline(self, subjects, n_threads):
+    def run_pipeline(self, subjects, n_threads, subject_id=None):
         """Pipeline template method overrided here. Calls freesurfer processing scripts. Single or multi-subject
         processing controlled through n_threads (default of -1 allocates all cpus available through a call to
         multiprocessing.cpu_count(). If T1_file is specified, checks that a .mgz file is present in
@@ -75,8 +97,15 @@ class proc_pipeline:
         :param subj_id: participant code for subject to be analysed.
         :type subj_id: string
         """
-        subjSesAcq_list = self.get_subjSesAcq_array(subjects)
-        T1_files = self.get_subjSesAcq_T1s(subjects)
+        regex = r'(\d+\.\d+\.\d+)'
+        current_version = re.search(regex, subprocess.check_output(["recon-all", "-version"]).decode("utf-8")).group(1)
+        if current_version != self.version:
+            logging.ERROR("Version installed on this system is %s, although processing version was set to %s (probably from loaded normative dataset). Please install required version to avoid discrepancies between normative model and newly processed data." % (current_version, self.version))
+        if subject_id is None:
+            logging.PRINT("Evaluating all subjects (should not happen from GUI)")
+            subjSesAcq_list, T1_files = self.get_subjSesAcq_T1s(subjects)
+        else:
+            subjSesAcq_list, T1_files = self.get_subjSesAcq_T1s(subjects)
         if n_threads == -1:
             n_threads = cpu_count()
         for thread in [range(k, min(k + n_threads, len(subjSesAcq_list))) for k in range(0, len(subjSesAcq_list), n_threads)]:
@@ -141,7 +170,7 @@ class proc_pipeline:
             directory and run 'source $FREESURFER_HOME/SetUpFreeSurfer.sh'.""")
         # Check MCR availability
         if not os.path.exists(os_env['FREESURFER_HOME'] + '/MCRv80'):
-            logging.ERROR('Matlab Compiler Runtime (MCR) 2012b not found in $FREESURFER_HOME/MCRv80. '
+            logging.WARNING('Matlab Compiler Runtime (MCR) 2012b not found in $FREESURFER_HOME/MCRv80. '
                           'Make sure $FREESURFER_HOME is set to the correct location. To install MCR 2012b, follow the'
                           ' instructions in https://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime')
         # Check matlab availability if lgi computation is activated
@@ -157,16 +186,16 @@ class proc_pipeline:
         if p.returncode:
             logging.ERROR('Command failed : %s' % (' '.join(cmd)))
         if self.recon_all_settings['compute_lgi']:
-            for atlas in self.atlases[self.fs_version].keys():
-                os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'label_%s' % atlas, 'pial'))
-                os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'label_%s' % atlas, 'pial_outer_smoothed'))
+            os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'label_%s' % self.atlas, 'pial'))
+            os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'label_%s' % self.atlas, 'pial_outer_smoothed'))
         os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts'))
         with open(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts', 'recon-all.log'), 'w') as fs_log_file:
             # Run recon-all
-            p = subprocess.run(['recon-all',
-                                '-subjid', subjSesAcq_id,
-                                '-parcstats2',
-                                '-all'], env=os_env, stdout=fs_log_file, stderr=fs_log_file)
+            cmd = ['recon-all', '-subjid', subjSesAcq_id]
+            if self.atlas == 'Destrieux':
+                cmd += ['-noparcstats', '-parcstats2']
+            cmd.append('-all')
+            p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
             if p.returncode:
                 logging.ERROR('Command recon-all failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
 
@@ -191,7 +220,10 @@ class proc_pipeline:
 
         # Process brain-stem structures
         with open(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts', 'recon-all_brainstem.log'), 'w') as fs_log_file:
-            cmd = ['recon-all', '-subject', subjSesAcq_id, '-brainstem-structures']
+            if Version(self.version) >= Version("7.3.0"):
+                cmd = ["segment_subregions", "--cross", subjSesAcq_id, "brainstem"]
+            else:
+                cmd = ['recon-all', '-subject', subjSesAcq_id, '-brainstem-structures']
             logging.PRINT('Running command: %s' % (' '.join(cmd)))
             p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
             if p.returncode:
@@ -199,17 +231,16 @@ class proc_pipeline:
 
         # Process hippocampus
         with open(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts', 'recon-all_hippocampus.log'), 'w') as fs_log_file:
-            cmd = ["recon-all", '-subject', subjSesAcq_id, '-hippocampal-subfields-T1']
+            if Version(self.version) >= Version("7.3.0"):
+                cmd = ["segment_subregions", "--cross", subjSesAcq_id, "hippo-amygdala"]
+            else:
+                cmd = ["recon-all", '-subject', subjSesAcq_id, '-hippocampal-subfields-T1']
             logging.PRINT('Running command: %s' % (' '.join(cmd)))
             p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
             if p.returncode:
                 logging.ERROR('Command recon-all hippocampal-subfields failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
 
-    def run_proc2table(self, subjSesAcq_id,
-                         seg_metrics=['volume'],
-                         parc35_metrics=['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind', 'curvind', 'pctmean'],
-                         parc75_metrics=['volume', 'area', 'thickness', 'thicknessstd', 'meancurv', 'gauscurv', 'foldind', 'curvind', 'pctmean'],
-                         parcSTD_metrics=['mean', 'std', 'snr']):
+    def run_proc2table(self, subjSesAcq_id):
         """Wrapper for asegstats2table and aparcstats2table. Assumes subject was processed with recon-all -parcstats2.
          Creates new directory <subjects_dir>/<subjSesAcq_id>/stats2table (deletes old one if present)."""
         if which('asegstats2table') is None:
@@ -223,6 +254,12 @@ class proc_pipeline:
             os.makedirs(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts'))
         os_env = os.environ.copy()
         os_env['SUBJECTS_DIR'] = self.subjects_dir
+        if Version(self.version).major == 6:  # v6 requires to run with python2.7, which is not necessarily in the conda environment
+            asegstats_cmd = ['python2.7', os.path.join(os_env["FREESURFER_HOME"], 'bin', 'asegstats2table')]
+            aparcstats_cmd = ['python2.7', os.path.join(os_env["FREESURFER_HOME"], 'bin', 'aparcstats2table')]
+        else:
+            asegstats_cmd = ['asegstats2table']
+            aparcstats_cmd = ['aparcstats2table']
 
         # Post processing on each hemisphere
         with open(os.path.join(self.subjects_dir, subjSesAcq_id, 'scripts', 'stats2table.log'), 'w') as fs_log_file:
@@ -247,26 +284,15 @@ class proc_pipeline:
                     p = subprocess.run(['mri_annotation2label',
                                         '--subject', subjSesAcq_id,
                                         '--hemi', hemi,
-                                        '--annotation', 'aparc',
+                                        '--annotation', aparc_code[self.atlas],
                                         '--surface', 'pial',
-                                        '--outdir', os.path.join(self.subjects_dir, subjSesAcq_id, 'label_DesikanKilliany', 'pial')
+                                        '--outdir', os.path.join(self.subjects_dir, subjSesAcq_id, 'label_DesikanKilliany' if self.atlas=='DesikanKilliany' else 'label_Destrieux', 'pial')
                                         ], env=os_env, stdout=fs_log_file, stderr=fs_log_file)
                     if p.returncode:
-                        logging.ERROR('Annotation2label for aparc pial failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
-
-                    p = subprocess.run(['mri_annotation2label',
-                                        '--subject', subjSesAcq_id,
-                                        '--hemi', hemi,
-                                        '--annotation', 'aparc.a2009s',
-                                        '--surface', 'pial',
-                                        '--outdir', os.path.join(self.subjects_dir, subjSesAcq_id, 'label_Destrieux', 'pial')
-                                        ], env=os_env, stdout=fs_log_file, stderr=fs_log_file)
-                    if p.returncode:
-                        logging.ERROR('Annotation2label for aparc.2009s pial failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
+                        logging.ERROR('Annotation2label for %s pial failed with code %d (see %s for details).' % (aparc_code[self.atlas], p.returncode, fs_log_file))
 
                     # Label and annotate outer surface
-                    for atlas in self.atlases[self.fs_version].keys():
-                        self.pial2outer(self.subjects_dir, subjSesAcq_id, atlas, hemi)
+                    self.pial2outer(self.subjects_dir, subjSesAcq_id, self.atlas, hemi)
                     annot_file = os.path.join(self.subjects_dir, subjSesAcq_id, 'label', '%s.aparc-outer-smoothed.annot' % hemi)
                     if os.path.exists(annot_file):
                         os.remove(annot_file)
@@ -337,34 +363,34 @@ class proc_pipeline:
                     self.calc_area_gauscurv(subjSesAcq_id, atlas, hemi)
 
                 # WM-GM PCT
+                if self.atlas == 'DesikanKilliany':
+                    stats_file = '%s.w-g.pct.stats' % hemi
+                elif self.atlas == 'Destrieux':
+                    stats_file = '%s.w-g.pct.a2009s.stats' % hemi
                 cmd = ['mri_segstats', '--in', os.path.join(self.subjects_dir, subjSesAcq_id, 'surf', '%s.w-g.pct.mgh' % hemi),
-                       '--annot', subjSesAcq_id, hemi, 'aparc.a2009s',
-                       '--sum', os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.w-g.pct.a2009s.stats' % hemi), '--snr']
+                       '--annot', subjSesAcq_id, hemi, 'aparc' if self.atlas=='DesikanKilliany' else 'aparc.a2009s',
+                       '--sum', os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', stats_file), '--snr']
                 logging.PRINT('Running command: %s' % (' '.join(cmd)))
                 p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
                 if p.returncode:
                     logging.ERROR('mri_segstats failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
+
                 # LGI segstats if selected
                 if self.recon_all_settings['compute_lgi']:
-                    # Desikan-Killiany LGI
+                    if self.atlas == 'DesikanKilliany':
+                        stats_file = '%s.pial_lgi.stats' % hemi
+                    elif self.atlas == 'Destrieux':
+                        stats_file = '%s.pial_lgi.a2009s.stats' % hemi
                     cmd = ['mri_segstats', '--in', os.path.join(self.subjects_dir, subjSesAcq_id, 'surf', '%s.pial_lgi' % hemi),
-                           '--annot', subjSesAcq_id, hemi, 'aparc', '--sum',
-                           os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.pial_lgi.stats' % hemi)]
-                    logging.PRINT('Running command: %s' % (' '.join(cmd)))
-                    p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
-                    if p.returncode:
-                        logging.ERROR('mri_segstats failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
-                    # Destrieux LGI
-                    cmd = ['mri_segstats', '--in', os.path.join(self.subjects_dir, subjSesAcq_id, 'surf', '%s.pial_lgi' % hemi),
-                           '--annot', subjSesAcq_id, hemi, 'aparc.a2009s', '--sum',
-                           os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.pial_lgi.a2009s.stats' % hemi)]
+                           '--annot', subjSesAcq_id, hemi, 'aparc' if self.atlas=='DesikanKilliany' else 'aparc.a2009s',
+                           '--sum', os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', stats_file)]
                     logging.PRINT('Running command: %s' % (' '.join(cmd)))
                     p = subprocess.run(cmd, env=os_env, stdout=fs_log_file, stderr=fs_log_file)
                     if p.returncode:
                         logging.ERROR('mri_segstats failed with code %d (see %s for details).' % (p.returncode, fs_log_file))
 
-        for metric in seg_metrics:
-            cmd = ['python2.7', os.path.join(os_env['FREESURFER_HOME'], 'bin', 'asegstats2table'),
+        for metric in self.seg_metrics:
+            cmd = asegstats_cmd + [
                    '--subjects', subjSesAcq_id,
                    '--meas', metric,
                    '--all-segs',
@@ -376,7 +402,7 @@ class proc_pipeline:
                 logging.ERROR('asegstats2table failed with code %d.' % p.returncode)
 
         # Export brainstem structures if available (using tab as delimiter to match aseg_stats_volume for example)
-        brainstem_volumes_file = os.path.join(self.subjects_dir, subjSesAcq_id, 'mri', 'brainstemSsVolumes.v10.txt')
+        brainstem_volumes_file = glob(os.path.join(self.subjects_dir, subjSesAcq_id, 'mri', 'brainstemSsVolumes.v*.txt'))[0]
         if os.path.exists(brainstem_volumes_file):
             file_content = []
             with open(brainstem_volumes_file, 'r') as f_in:
@@ -388,7 +414,7 @@ class proc_pipeline:
 
         # Export hippocampal subfields stats if file exists
         for hemi in ['rh', 'lh']:
-            hipp_volume_file = os.path.join(self.subjects_dir, subjSesAcq_id, 'mri', '%s.hippoSfVolumes-T1.v10.txt' % hemi)
+            hipp_volume_file = glob(os.path.join(self.subjects_dir, subjSesAcq_id, 'mri', '%s.hippoSfVolumes*.txt' % hemi))[0]
             if os.path.exists(hipp_volume_file):
                 file_content = []
                 with open(hipp_volume_file, 'r') as f_in:
@@ -400,60 +426,48 @@ class proc_pipeline:
 
         # Export aparc stats
         for hemi in ['rh', 'lh']:
-            for metric in parc35_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'aparcstats2table'),
-                                    "--subjects", subjSesAcq_id,
-                                    "--parc", "aparc",
-                                    "--hemi", hemi,
-                                    "--meas", metric,
-                                    "--parcs-from-file", os.path.join(os.path.dirname(__file__), 'resources', 'DesikanKilliany_ROIs_select.txt'),
-                                    "--tablefile", os.path.join(stats_folder, '%s.aparc_stats_%s.txt' % (hemi, metric))]
-                    logging.PRINT('Running command: %s' % (' '.join(cmd)))
-                    p = subprocess.run(cmd, env=os_env)
-                    if p.returncode:
-                        logging.ERROR("aparcstats2table failed with code %d." % p.returncode)
-            for metric in parc75_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'aparcstats2table'),
-                        '--subjects', subjSesAcq_id,
-                        '--parc', 'aparc.a2009s',
-                        '--hemi', hemi,
-                        '--meas', metric,
-                        '--parcs-from-file', os.path.join(os.path.dirname(__file__), 'resources', 'Destrieux_ROIs_select.txt'),
-                        '--tablefile', os.path.join(stats_folder, '%s.aparca2009s_stats_%s.txt' % (hemi, metric))]
-                    logging.PRINT('Running command: %s' % (' '.join(cmd)))
-                    p = subprocess.run(cmd, env=os_env)
-                    if p.returncode:
-                        logging.ERROR("aparcstats2table failed with code %d." % p.returncode)
+            if self.atlas == 'DesikanKilliany':
+                parc_metrics = self.parc35_metrics
+            elif self.atlas == 'Destrieux':
+                parc_metrics = self.parc75_metrics
+            for metric in parc_metrics:
+                cmd = aparcstats_cmd + [
+                                "--subjects", subjSesAcq_id,
+                                "--parc", 'aparc' if self.atlas=='DesikanKilliany' else 'aparc.a2009s',
+                                "--hemi", hemi,
+                                "--measure", metric,
+                                "--parcs-from-file", os.path.join(os.path.dirname(__file__), 'resources', '%s_ROIs_select.txt' % self.atlas),
+                                "--tablefile", os.path.join(stats_folder, '%s.%s_stats_%s.txt' % (hemi, aparc_code[self.atlas], metric))]
+                logging.PRINT('Running command: %s' % (' '.join(cmd)))
+                p = subprocess.run(cmd, env=os_env)
+                if p.returncode:
+                    logging.ERROR("aparcstats2table failed with code %d." % p.returncode)
+
             # GM-WM contrast needs asegstats (table format a little different)
-            for metric in parcSTD_metrics:
-                cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'asegstats2table'),
-                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.w-g.pct.stats' % hemi),
+            for metric in self.parcSTD_metrics:
+                if self.atlas == 'DesikanKilliany':
+                    stats_file = '%s.w-g.pct.stats' % hemi
+                elif self.atlas == 'Destrieux':
+                    stats_file = '%s.w-g.pct.a2009s.stats' % hemi
+                cmd = asegstats_cmd + [
+                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', stats_file),
                     "--meas", metric,
-                    "--tablefile", os.path.join(stats_folder, '%s.aparc_stats_pct%s.txt' % (hemi, metric))]
+                    "--tablefile", os.path.join(stats_folder, '%s.%s_stats_pct%s.txt' % (hemi, aparc_code[self.atlas], metric))]
                 logging.PRINT('Running command: %s' % (' '.join(cmd)))
                 p = subprocess.run(cmd, env=os_env)
-                cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'asegstats2table'),
-                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.w-g.pct.a2009s.stats' % hemi),
-                    "--meas", metric,
-                    "--tablefile", os.path.join(stats_folder, '%s.aparca2009s_stats_pct%s.txt' % (hemi, metric))]
-                logging.PRINT('Running command: %s' % (' '.join(cmd)))
-                p = subprocess.run(cmd, env=os_env)
+
             # Check if lgi values where computed
             if self.recon_all_settings['compute_lgi']:
-                if not os.path.exists(os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.pial_lgi.stats' % hemi)):
-                    logging.ERROR('%s.pial_lgi.stats file not found for subject %s. Run recon-all with SOM.recon_all_settings["compute_lgi"]=True or disable lgi in scanometrics.processing.freesurfer.run_stats2table')
-                cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'asegstats2table'),
-                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.pial_lgi.stats' % hemi),
+                if self.atlas == 'DesikanKilliany':
+                    stats_file = '%s.pial_lgi.stats' % hemi
+                elif self.atlas == 'Destrieux':
+                    stats_file = '%s.pial_lgi.a2009s.stats' % hemi
+                if not os.path.exists(os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', stats_file)):
+                    logging.ERROR(f'{stats_file} file not found for subject {subjSesAcq_id}. Run recon-all with SOM.recon_all_settings["compute_lgi"]=True or disable lgi in scanometrics.processing.freesurfer.run_stats2table')
+                cmd = asegstats_cmd + [
+                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', stats_file),
                     "--meas", "mean",
-                    "--tablefile", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats2table', '%s.aparc_stats_lgimean.txt' % hemi)]
-                logging.PRINT('Running command: %s' % (' '.join(cmd)))
-                p = subprocess.run(cmd, env=os_env)
-                cmd = ["python2.7", os.path.join(os_env['FREESURFER_HOME'], 'bin', 'asegstats2table'),
-                    "--inputs", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats', '%s.pial_lgi.a2009s.stats' % hemi),
-                    "--meas", "mean",
-                    "--tablefile", os.path.join(self.subjects_dir, subjSesAcq_id, 'stats2table', '%s.aparca2009s_stats_lgimean.txt' % hemi)]
+                    "--tablefile", os.path.join(stats_folder, '%s.%s_stats_lgimean.txt' % (hemi, aparc_code[self.atlas]))]
                 logging.PRINT('Running command: %s' % (' '.join(cmd)))
                 p = subprocess.run(cmd, env=os_env)
 
@@ -510,14 +524,14 @@ class proc_pipeline:
                 if 'Lobe' in metric_name:
                     hemi, lobe, metric = metric_name.split("_")
                     if metric in ['area', 'area_pial', 'area_pial_outer_smoothed', 'volume', 'gauscurv']:
-                        for ctx_label in self.lobe_ROIs[[self.lobe_ROIs[i][0] for i in range(len(self.lobe_ROIs))].index(lobe)][1]:
-                            metric_include.append('aparc_%s_%s_%s' % (hemi, ctx_label, metric))
+                        for ctx_label in self.lobe_ROIs[self.atlas][[self.lobe_ROIs[self.atlas][i][0] for i in range(len(self.lobe_ROIs[self.atlas]))].index(lobe)][1]:
+                            metric_include.append('%s_%s_%s_%s' % (aparc_code[self.atlas], hemi, ctx_label, metric))
                     else:
-                        metric_include.append('aparc_%s_%s_area' % (hemi, ctx_label))
+                        metric_include.append('%s_%s_%s_area' % (aparc_code[self.atlas], hemi, ctx_label))
                         if metric == 'pctmean':
-                            metric_include.append('%s_pctmean_%s' % (hemi, ctx_label))
+                            metric_include.append('%s_%s_pctmean' % (hemi, ctx_label))
                         else:
-                            metric_include.append('aparc_%s_%s_%s' % (hemi, ctx_label, metric))
+                            metric_include.append('%s_%s_%s_%s' % (aparc_code[self.atlas], hemi, ctx_label, metric))
 
         subject_list = self.get_subjSesAcq_array(subjects)
         if self.load_from_ID:
@@ -541,7 +555,7 @@ class proc_pipeline:
 
         # Compute lobe metrics
         for hemi in ['lh', 'rh']:
-            for lobe, ctx_labels in self.lobe_ROIs:
+            for lobe, ctx_labels in self.lobe_ROIs[self.atlas]:
                 for metric in self.parc35_metrics:
                     if metric_include is not None and '%s_%s_%s' % (hemi, lobe, metric) not in metric_include:
                         continue
@@ -549,12 +563,12 @@ class proc_pipeline:
                         continue
                     if metric in ['area', 'area_pial', 'area_pial_outer_smoothed', 'volume', 'gauscurv']:  # Might add 'gauscurv_pial', 'gauscurv_pial_outer_smoothed' if needed, but check if we should normalise, and by what
                         metric_names += ['%s_%s_%s' % (hemi, lobe, metric)]
-                        col_idx = np.array([metric_names.index('aparc_%s_%s_%s' % (hemi, ctx_label, metric)) for ctx_label in ctx_labels])
+                        col_idx = np.array([metric_names.index("_".join([aparc_code[self.atlas], hemi, ctx_label, metric])) for ctx_label in ctx_labels])
                         metric_values = np.hstack((metric_values, np.nansum(metric_values[:, col_idx], axis=1, keepdims=True)))
                     else:
                         col_idx = []
                         for ctx_label in ctx_labels:
-                            key_name = 'aparc_%s_%s_area' % (hemi, ctx_label)
+                            key_name = '%s_%s_%s_area' % (aparc_code[self.atlas], hemi, ctx_label)
                             if key_name in metric_names:
                                 col_idx.append(metric_names.index(key_name))
                         col_idx = np.array(col_idx)
@@ -562,9 +576,9 @@ class proc_pipeline:
                             norm_area = metric_values[:, col_idx].copy()
                             norm_area /= norm_area.sum(axis=1, keepdims=True)
                         if metric == 'pctmean':
-                            col_idx = np.array([metric_names.index('%s_pctmean_%s' % (hemi, ctx_label)) for ctx_label in ctx_labels])
+                            col_idx = np.array([metric_names.index('%s_%s_pctmean' % (hemi, ctx_label)) for ctx_label in ctx_labels])
                         else:
-                            col_idx = np.array([metric_names.index('aparc_%s_%s_%s' % (hemi, ctx_label, metric)) for ctx_label in ctx_labels])
+                            col_idx = np.array([metric_names.index("_".join([aparc_code[self.atlas], hemi, ctx_label, metric])) for ctx_label in ctx_labels])
                         metric_names += ['%s_%s_%s' % (hemi, lobe, metric)]
                         metric_values = np.hstack((metric_values, np.nansum(metric_values[:, col_idx]*norm_area, axis=1, keepdims=True)))
 
@@ -613,11 +627,11 @@ class proc_pipeline:
                 metric_unit.append(r'')
                 metric_type.append('Symmetry index')
                 continue
-            if m in ['asegvolume_EstimatedTotalIntraCranialVol', 'aparc_eTIV']:
+            if m in ['asegvolume_EstimatedTotalIntraCranialVol', '%s_eTIV' % aparc_code[self.atlas]]:
                 metric_unit.append(r'')
                 metric_type.append('Estimated total ICV')
                 continue
-            if 'volume' in m:
+            if 'volume' in m or 'BrainSegVolNotVent' in m:
                 norm_coef[j] = 1.0
                 metric_unit.append(r'mm$^3$')
                 metric_type.append('Volume')
@@ -670,7 +684,7 @@ class proc_pipeline:
 
         # Normalize metrics
         normalized_metrics = np.full(metric_values.shape, np.nan)
-        TIV = metric_values[:, metric_names.index('asegvolume_EstimatedTotalIntraCranialVol')].copy()  # has length # subjects
+        TIV = metric_values[:, metric_names.index('asegvolume_EstimatedTotalIntraCranialVol')].copy()  # has length # scans
         TIV /= ref_eTIV
         vol_scaling_factor = (np.tile(TIV[:, None], (1, len(metric_names))))**(-np.tile(norm_coef[None, :], (metric_values.shape[0], 1)))
         volnorm_col_idxs = np.argwhere(~np.isnan(norm_coef))
@@ -779,6 +793,7 @@ class proc_pipeline:
                                                 " The subject was discarded." % (ID, new_subj, metric))
                             else:
                                 logging.PRINT('Entered 2nd if statement')
+                                row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                                 metric_values.append(np.array(list(row.values())[1:], dtype='float')[filtering_idxs])  # skip participant ID and filter metrics
                                 metric_names += tmp_metric_names
                         logging.PRINT('Exiting if statement')
@@ -790,65 +805,43 @@ class proc_pipeline:
         if len(metric_values.shape) == 1:
             metric_values = metric_values[None, :]
         for hemi in ['rh', 'lh']:
-            for metric in self.parc35_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    stats2table_file = os.path.join(stats2table_folder, '%s.aparc_stats_%s.txt' % (hemi, metric))
-                    if os.path.exists(stats2table_file):
-                        with open(stats2table_file, 'r') as f:
-                            dict_reader = DictReader(f, delimiter='\t')
-                            tmp_metric_names = ['aparc_%s' % m for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry at start
-                            filtering_idxs = np.arange(len(tmp_metric_names))
-                            if metric_include is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                                tmp_metric_names = filtered_metric_names
-                            if metric_exclude is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                                tmp_metric_names = filtered_metric_names
-                            if len(tmp_metric_names) > 0:
-                                for row in dict_reader:
-                                    new_subj = list(row.values())[0]
-                                    if new_subj != ID:
-                                        logging.WARNING("Subject %s is labeled as %s in freesurfer output (%s.aparc_stats_%s.txt)."
-                                                        " The subject was discarded." % (ID, new_subj, hemi, metric))
-                                    else:
-                                        metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID and filter metrics
-                                        metric_names += tmp_metric_names
-            for metric in self.parc75_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    stats2table_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_%s.txt' % (hemi, metric))
-                    if os.path.exists(stats2table_file):
-                        with open(stats2table_file, 'r') as f:
-                            dict_reader = DictReader(f, delimiter='\t')
-                            tmp_metric_names = ['aparc.a2009s_%s' % m for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.a2009s.<metric> entry
-                            filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                            if metric_include is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                                tmp_metric_names = filtered_metric_names
-                            if metric_exclude is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                                tmp_metric_names = filtered_metric_names
-                            if len(tmp_metric_names) > 0:
-                                for row in dict_reader:
-                                    new_subj = list(row.values())[0]
-                                    if new_subj != ID:
-                                        logging.WARNING(
-                                            "Subject %s is labeled as %s in freesurfer output (%s.aparca2009s_stats_%s.txt)."
-                                            " The subject was discarded." % (ID, new_subj, hemi, metric))
-                                    else:
-                                        metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID and filter metrics
-                                        metric_names += tmp_metric_names
+            if self.atlas == 'DesikanKilliany':
+                parc_metrics = self.parc35_metrics
+            elif self.atlas == 'Destrieux':
+                parc_metrics = self.parc75_metrics
+            for metric in parc_metrics:
+                stats2table_file = os.path.join(stats2table_folder, '%s.%s_stats_%s.txt' % (hemi, aparc_code[self.atlas], metric))
+                if os.path.exists(stats2table_file):
+                    with open(stats2table_file, 'r') as f:
+                        dict_reader = DictReader(f, delimiter='\t')
+                        tmp_metric_names = ['%s_%s' % (aparc_code[self.atlas], m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry at start
+                        filtering_idxs = np.arange(len(tmp_metric_names))
+                        if metric_include is not None:
+                            filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
+                            filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
+                            tmp_metric_names = filtered_metric_names
+                        if metric_exclude is not None:
+                            filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
+                            filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
+                            tmp_metric_names = filtered_metric_names
+                        if len(tmp_metric_names) > 0:
+                            for row in dict_reader:
+                                new_subj = list(row.values())[0]
+                                if new_subj != ID:
+                                    logging.WARNING("Subject %s is labeled as %s in freesurfer output (%s.%s_stats_%s.txt)."
+                                                    " The subject was discarded." % (ID, new_subj, hemi, aparc_code[self.atlas], metric))
+                                else:
+                                    row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
+                                    metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID and filter metrics
+                                    metric_names += tmp_metric_names
 
             # GM-WM contrast needs asegstats (table format a little different, no ID at each line in CH-first for example)
             for metric in self.parcSTD_metrics:
-                stats2table_file = os.path.join(stats2table_folder, '%s.aparc_stats_pct%s.txt' % (hemi, metric))
+                stats2table_file = os.path.join(stats2table_folder, '%s.%s_stats_pct%s.txt' % (hemi, aparc_code[self.atlas], metric))
                 if os.path.exists(stats2table_file):
                     with open(stats2table_file, 'r') as f:
                         dict_reader = DictReader(f, delimiter='\t')
-                        tmp_metric_names = ['%s_pct%s_%s' % (hemi, metric, m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
+                        tmp_metric_names = ['%s_%s_pct%s' % (hemi, m, metric) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
                         filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
                         if metric_include is not None:
                             filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
@@ -860,35 +853,17 @@ class proc_pipeline:
                             tmp_metric_names = filtered_metric_names
                         if len(tmp_metric_names) > 0:
                             for row in dict_reader:
+                                row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                                 metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip subject index as doesn't provide any info, and filter metrics
                                 # loaded_subjects.append(list(row.values())[0])  <- commented as no ID in pct files (used --inputs option in asegstats2table), using same index as other FS output tables
                                 metric_names += tmp_metric_names
-                stats2table_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_pct%s.txt' % (hemi, metric))
-                if os.path.exists(stats2table_file):
-                    with open(stats2table_file, 'r') as f:
-                        dict_reader = DictReader(f, delimiter='\t')
-                        tmp_metric_names = ['%s_pct%s_%s' % (hemi, metric, m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
-                        filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                        if metric_include is not None:
-                            filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                            filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                            tmp_metric_names = filtered_metric_names
-                        if metric_exclude is not None:
-                            filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                            filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                            tmp_metric_names = filtered_metric_names
-                        if len(tmp_metric_names) > 0:
-                            for row in dict_reader:
-                                metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID and filter metrics
-                                # loaded_subjects.append(list(row.values())[0]) <- commented as no ID in pct files
-                                metric_names += tmp_metric_names
 
             # Optional lgi files if processed with matlab script
-            lgi_file = os.path.join(stats2table_folder, '%s.aparc_stats_lgimean.txt' % hemi)
+            lgi_file = os.path.join(stats2table_folder, '%s.%s_stats_lgimean.txt' % (hemi, aparc_code[self.atlas]))
             if os.path.exists(lgi_file):
                 with open(lgi_file, 'r') as f:
                     dict_reader = DictReader(f, delimiter='\t')
-                    tmp_metric_names = ['%s_aparc_lgimean_%s' % (hemi, m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
+                    tmp_metric_names = ['%s_%s_lgimean' % (hemi, m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
                     filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
                     if metric_include is not None:
                         filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
@@ -900,27 +875,10 @@ class proc_pipeline:
                         tmp_metric_names = filtered_metric_names
                     if len(tmp_metric_names) > 0:
                         for row in dict_reader:
+                            row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                             metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID and filter metrics
                             metric_names += tmp_metric_names
 
-            lgi_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_lgimean.txt' % hemi)
-            if os.path.exists(lgi_file):
-                with open(lgi_file, 'r') as f:
-                    dict_reader = DictReader(f, delimiter='\t')
-                    tmp_metric_names = ['%s_aparca2009s_lgimean_%s' % (hemi, m) for m in dict_reader.fieldnames[1:]]  # skip <hemi>.aparc.<metric> entry
-                    filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                    if metric_include is not None:
-                        filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                        filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                        tmp_metric_names = filtered_metric_names
-                    if metric_exclude is not None:
-                        filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                        filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                        tmp_metric_names = filtered_metric_names
-                    if len(tmp_metric_names) > 0:
-                        for row in dict_reader:
-                            metric_values = np.hstack((metric_values, np.array(list(row.values())[1:], dtype='float')[filtering_idxs][None, :]))  # skip participant ID
-                            metric_names += tmp_metric_names
         if len(metric_values) == 0:
             logging.WARNING('No metric values were found for subject %s, will likely have only NaNs' % ID)
         else:
@@ -993,6 +951,7 @@ class proc_pipeline:
                                                 " The subject was discarded." % (ID, metric))
                             else:
                                 logging.PRINT('Entered 2nd if statement')
+                                row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                                 table_to_fill[subjSesAcq_list.index(ID), :] = np.array(list(row.values())[1:])[filtering_idxs]  # skip ID and filter metrics
                             logging.PRINT('Exiting if statement')
                         metric_names += tmp_metric_names
@@ -1003,72 +962,16 @@ class proc_pipeline:
         metric_values = metric_values[:, 1:]  # Trim out 1st column used to initialize array
         metric_names = metric_names[1:]
         for hemi in ['rh', 'lh']:
-            for metric in self.parc35_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    stats2table_file = os.path.join(stats2table_folder, '%s.aparc_stats_%s.txt' % (hemi, metric))
-                    if os.path.exists(stats2table_file):
-                        with open(stats2table_file, 'r') as f:
-                            dict_reader = DictReader(f, delimiter='\t')
-                            tmp_metric_names = ['aparc_%s' % m for m in dict_reader.fieldnames[1:]]
-                            filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                            if metric_include is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                                tmp_metric_names = filtered_metric_names
-                            if metric_exclude is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                                tmp_metric_names = filtered_metric_names
-                            if len(tmp_metric_names) > 0:
-                                table_to_fill = np.full((len(subjSesAcq_list), len(tmp_metric_names)), np.nan)
-                                for i, row in enumerate(dict_reader):
-                                    ID = list(row.values())[0]  # First value is subject ID, no common key between tables
-                                    if ID != loaded_IDs[i]:
-                                        logging.WARNING("%s in %s.aparc_stats_%s.txt (line %d) doesn't match previous order !" % (ID, hemi, metric, i))
-                                    if ID not in subjSesAcq_list:
-                                        logging.WARNING("Subject %s in freesurfer output (%s.aparc_stats_%s.txt) is not in"
-                                                        " subjSesAcq_list. The subject was discarded." % (ID, hemi, metric))
-                                    else:
-                                        table_to_fill[subjSesAcq_list.index(ID), :] = np.array(list(row.values())[1:])[filtering_idxs]
-                                metric_names += tmp_metric_names
-                                metric_values = np.hstack((metric_values, table_to_fill))
-            for metric in self.parc75_metrics:
-                if metric not in ['pctmean', 'lgimean']:
-                    stats2table_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_%s.txt' % (hemi, metric))
-                    if os.path.exists(stats2table_file):
-                        with open(stats2table_file, 'r') as f:
-                            dict_reader = DictReader(f, delimiter='\t')
-                            tmp_metric_names = ['aparc.a2009s_%s' % m for m in dict_reader.fieldnames[1:]]
-                            filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                            if metric_include is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                                tmp_metric_names = filtered_metric_names
-                            if metric_exclude is not None:
-                                filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                                filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                                tmp_metric_names = filtered_metric_names
-                            if len(tmp_metric_names) > 0:
-                                table_to_fill = np.full((len(subjSesAcq_list), len(tmp_metric_names)), np.nan)
-                                for i, row in enumerate(dict_reader):
-                                    ID = list(row.values())[0]  # First value is subject ID, no common key between tables
-                                    if ID != loaded_IDs[i]:
-                                        logging.WARNING("%s in %s.aparca2009s_stats_%s.txt (line %d) doesn't match previous order !" % (ID, hemi, metric, i))
-                                    if ID not in subjSesAcq_list:
-                                        logging.WARNING(
-                                            "Subject %s in freesurfer output (%s.aparca2009s_stats_%s.txt) is not in"
-                                            " subjSesAcq_list. The subject was discarded." % (ID, hemi, metric))
-                                    else:
-                                        table_to_fill[subjSesAcq_list.index(ID), :] = np.array(list(row.values())[1:])[filtering_idxs]
-                                metric_names += tmp_metric_names
-                                metric_values = np.hstack((metric_values, table_to_fill))
-            # GM-WM contrast needs asegstats (table format a little different, no ID at each line in CH-first for example)
-            for metric in self.parcSTD_metrics:
-                stats2table_file = os.path.join(stats2table_folder, '%s.aparc_stats_pct%s.txt' % (hemi, metric))
+            if self.atlas == 'DesikanKilliany':
+                parc_metrics = self.parc35_metrics
+            elif self.atlas == 'Destrieux':
+                parc_metrics = self.parc75_metrics
+            for metric in parc_metrics:
+                stats2table_file = os.path.join(stats2table_folder, '%s.%s_stats_%s.txt' % (hemi, aparc_code[self.atlas], metric))
                 if os.path.exists(stats2table_file):
                     with open(stats2table_file, 'r') as f:
                         dict_reader = DictReader(f, delimiter='\t')
-                        tmp_metric_names = ['%s_pct%s_%s' % (hemi, metric, m) for m in dict_reader.fieldnames[1:]]
+                        tmp_metric_names = ['%s_%s' % (aparc_code[self.atlas], m) for m in dict_reader.fieldnames[1:]]
                         filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
                         if metric_include is not None:
                             filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
@@ -1081,19 +984,25 @@ class proc_pipeline:
                         if len(tmp_metric_names) > 0:
                             table_to_fill = np.full((len(subjSesAcq_list), len(tmp_metric_names)), np.nan)
                             for i, row in enumerate(dict_reader):
-                                if loaded_IDs[i] not in subjSesAcq_list:
-                                    logging.WARNING(
-                                        "Line %d in %s.aparc_stats_pct%s.txt (%s in tables with IDs) is not in"
-                                        " subjSesAcq_list. The subject was discarded." % (i, hemi, metric, loaded_IDs[i]))
+                                ID = list(row.values())[0]  # First value is subject ID, no common key between tables
+                                if ID != loaded_IDs[i]:
+                                    logging.WARNING("%s in %s.%s_stats_%s.txt (line %d) doesn't match previous order !" % (ID, hemi, aparc_code[self.atlas], metric, i))
+                                if ID not in subjSesAcq_list:
+                                    logging.WARNING("Subject %s in freesurfer output (%s.%s_stats_%s.txt) is not in"
+                                                    " subjSesAcq_list. The subject was discarded." % (ID, hemi, aparc_code[self.atlas], metric))
                                 else:
-                                    table_to_fill[subjSesAcq_list.index(loaded_IDs[i]), :] = np.array(list(row.values())[1:])[filtering_idxs]
+                                    row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
+                                    table_to_fill[subjSesAcq_list.index(ID), :] = np.array(list(row.values())[1:])[filtering_idxs]
                             metric_names += tmp_metric_names
                             metric_values = np.hstack((metric_values, table_to_fill))
-                stats2table_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_pct%s.txt' % (hemi, metric))
+
+            # GM-WM contrast needs asegstats (table format a little different, no ID at each line in CH-first for example)
+            for metric in self.parcSTD_metrics:
+                stats2table_file = os.path.join(stats2table_folder, '%s.%s_stats_pct%s.txt' % (hemi, aparc_code[self.atlas], metric))
                 if os.path.exists(stats2table_file):
                     with open(stats2table_file, 'r') as f:
                         dict_reader = DictReader(f, delimiter='\t')
-                        tmp_metric_names = ['%s_pct%s_%s' % (hemi, metric, m) for m in dict_reader.fieldnames[1:]]
+                        tmp_metric_names = ['%s_%s_pct%s' % (hemi, m, metric) for m in dict_reader.fieldnames[1:]]
                         filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
                         if metric_include is not None:
                             filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
@@ -1108,19 +1017,20 @@ class proc_pipeline:
                             for i, row in enumerate(dict_reader):
                                 if loaded_IDs[i] not in subjSesAcq_list:
                                     logging.WARNING(
-                                        "Line %d in %s.aparca2009s_stats_pct%s.txt (%s in tables with IDs) is not in"
-                                        " subjSesAcq_list. The subject was discarded." % (i, hemi, metric, loaded_IDs[i]))
+                                        "Line %d in %s.%s_stats_pct%s.txt (%s in tables with IDs) is not in"
+                                        " subjSesAcq_list. The subject was discarded." % (i, hemi, aparc_code[self.atlas], metric, loaded_IDs[i]))
                                 else:
+                                    row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                                     table_to_fill[subjSesAcq_list.index(loaded_IDs[i]), :] = np.array(list(row.values())[1:])[filtering_idxs]
                             metric_names += tmp_metric_names
                             metric_values = np.hstack((metric_values, table_to_fill))
 
             # Optional lgi files if processed with matlab script
-            lgi_file = os.path.join(stats2table_folder, '%s.aparc_stats_lgimean.txt' % hemi)
+            lgi_file = os.path.join(stats2table_folder, '%s.%s_stats_lgimean.txt' % (hemi, aparc_code[self.atlas]))
             if os.path.exists(lgi_file):
                 with open(lgi_file, 'r') as f:
                     dict_reader = DictReader(f, delimiter='\t')
-                    tmp_metric_names = ['%s_aparc_lgimean_%s' % (hemi, m) for m in dict_reader.fieldnames[1:]]
+                    tmp_metric_names = ['%s_%s_lgimean' % (hemi, m) for m in dict_reader.fieldnames[1:]]
                     filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
                     if metric_include is not None:
                         filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
@@ -1135,37 +1045,14 @@ class proc_pipeline:
                         for i, row in enumerate(dict_reader):
                             if loaded_IDs[i] not in subjSesAcq_list:
                                 logging.WARNING(
-                                    "Line %d in %s.aparc_stats_lgimean.txt (%s in tables with IDs) is not in"
-                                    " subjSesAcq_list. The subject was discarded." % (i, hemi, loaded_IDs[i]))
+                                    "Line %d in %s.%s_stats_lgimean.txt (%s in tables with IDs) is not in"
+                                    " subjSesAcq_list. The subject was discarded." % (i, hemi, aparc_code[self.atlas], loaded_IDs[i]))
                             else:
+                                row = {key: np.nan if value == "" else value for key, value in row.items()}  # Convert empty strings to nan
                                 table_to_fill[subjSesAcq_list.index(loaded_IDs[i]), :] = np.array(list(row.values())[1:])[filtering_idxs]
                         metric_names += tmp_metric_names
                         metric_values = np.hstack((metric_values, table_to_fill))
-            lgi_file = os.path.join(stats2table_folder, '%s.aparca2009s_stats_lgimean.txt' % hemi)
-            if os.path.exists(lgi_file):
-                with open(lgi_file, 'r') as f:
-                    dict_reader = DictReader(f, delimiter='\t')
-                    tmp_metric_names = ['%s_aparca2009s_lgimean_%s' % (hemi, m) for m in dict_reader.fieldnames[1:]]
-                    filtering_idxs = np.arange(len(dict_reader.fieldnames)-1)
-                    if metric_include is not None:
-                        filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name in metric_include]
-                        filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name in metric_include])
-                        tmp_metric_names = filtered_metric_names
-                    if metric_exclude is not None:
-                        filtered_metric_names = [metric_name for metric_name in tmp_metric_names if metric_name not in metric_exclude]
-                        filtering_idxs = np.array([idx for idx, metric_name in enumerate(tmp_metric_names) if metric_name not in metric_exclude])
-                        tmp_metric_names = filtered_metric_names
-                    if len(tmp_metric_names) > 0:
-                        table_to_fill = np.full((len(subjSesAcq_list), len(tmp_metric_names)), np.nan)
-                        for i, row in enumerate(dict_reader):
-                            if loaded_IDs[i] not in subjSesAcq_list:
-                                logging.WARNING(
-                                    "Line %d in %s.aparca2009s_stats_lgimean.txt (%s in tables with IDs) is not in"
-                                    " subjSesAcq_list. The subject was discarded." % (i, hemi, loaded_IDs[i]))
-                            else:
-                                table_to_fill[subjSesAcq_list.index(loaded_IDs[i]), :] = np.array(list(row.values())[filtering_idxs])
-                        metric_names += tmp_metric_names
-                        metric_values = np.hstack((metric_values, table_to_fill))
+
         return metric_values, metric_names
 
     def generate_location_plots(self, output_folder):
@@ -1174,223 +1061,78 @@ class proc_pipeline:
             logging.ERROR('$FREESURFER_HOME environment variable not found. Set $FREESURFER_HOME to your FREESURFER '
                           'installation path before running ScanOMetrics.')
         fs_home = my_env['FREESURFER_HOME']
-        """dk_ROIs = [['bankssts', 'lateral'],
-                   ['caudalanteriorcingulate', 'medial'],
-                   ['caudalmiddlefrontal', 'lateral'],
-                   ['cuneus', 'medial'],
-                   ['entorhinal', 'medial'],
-                   ['fusiform', 'medial'],
-                   ['inferiorparietal', 'lateral'],
-                   ['inferiortemporal', 'lateral'],
-                   ['isthmuscingulate', 'medial'],
-                   ['lateraloccipital', 'lateral'],
-                   ['lateralorbitofrontal', 'lateral'],
-                   ['lingual', 'medial'],
-                   ['medialorbitofrontal', 'medial'],
-                   ['middletemporal', 'lateral'],
-                   ['parahippocampal', 'medial'],
-                   ['paracentral', 'medial'],
-                   ['parsopercularis', 'lateral'],
-                   ['parsorbitalis', 'lateral'],
-                   ['parstriangularis', 'lateral'],
-                   ['pericalcarine', 'medial'],
-                   ['postcentral', 'lateral'],
-                   ['posteriorcingulate', 'medial'],
-                   ['precentral', 'lateral'],
-                   ['precuneus', 'medial'],
-                   ['rostralanteriorcingulate', 'medial'],
-                   ['rostralmiddlefrontal', 'lateral'],
-                   ['superiorfrontal', 'lateral'],
-                   ['superiorparietal', 'lateral'],
-                   ['superiortemporal', 'lateral'],
-                   ['supramarginal', 'lateral'],
-                   ['frontalpole', 'medial'],
-                   ['temporalpole', 'medial'],
-                   ['transversetemporal', 'lateral'],
-                   ['insula', 'lateral']]"""
         hemis = ['lh', 'rh']
-        for roi, roi_view in [self.atlases[self.fs_version]['DesikanKilliany']['ROIs'], self.atlases[self.fs_version]['DesikanKilliany']['views']]:
-            for hemi in hemis:
-                orig_annot = read_annot(os.path.join(fs_home, 'subjects', 'fsaverage', 'label', '%s.aparc.annot' % hemi))
-                new_vertices = np.ones(orig_annot[0].shape, dtype='int32') * -1
-                new_colors = [[0, 0, 0, 0, 23234234]]
-                new_names = [b'unknown']
-                roi_idx = orig_annot[2].index(roi.encode('ascii'))
-                new_vertices[orig_annot[0] == roi_idx] = 1
-                new_colors.append([0, 0, 255, 0, 2647065])
-                new_names.append(orig_annot[2][roi_idx])
-                roi_annot_file = '/tmp/tmp_roi.annot'
-                write_annot(roi_annot_file, new_vertices, np.array(new_colors, dtype='int32'), new_names)
-                if hemi == 'lh' and roi_view == 'lateral':
-                    rotation = '0'
-                elif hemi == 'lh' and roi_view == 'medial':
-                    rotation = '180'
-                elif hemi == 'rh' and roi_view == 'lateral':
-                    rotation = '180'
-                elif hemi == 'rh' and roi_view == 'medial':
-                    rotation = '0'
-                cmd = ['freeview',
-                       '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
-                           ':edgethickness=0'+
-                           ':curvature_method=off' +
-                           ':annot=%s' % roi_annot_file,
-                       # '-view', view,
-                       # '-zoom', '1.5',
-                       '-layout', '1', '-viewport', '3d',
-                       '-cam', 'Dolly', '1.5', 'azimuth', rotation,
-                       '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (roi, hemi)), '0.5']
-                # print(' '.join(cmd))
-                subprocess.call(cmd)
-
-        # Destrieux ROIs
-        """destrieux_ROIs = [['G_and_S_frontomargin', 'lateral'],
-                          ['G_and_S_occipital_inf', 'lateral'],
-                          ['G_and_S_paracentral', 'medial'],
-                          ['G_and_S_subcentral', 'lateral'],
-                          ['G_and_S_transv_frontopol', 'lateral'],
-                          ['G_and_S_cingul-Ant', 'medial'],
-                          ['G_and_S_cingul-Mid-Ant', 'medial'],
-                          ['G_and_S_cingul-Mid-Post', 'medial'],
-                          ['G_cingul-Post-dorsal', 'medial'],
-                          ['G_cingul-Post-ventral', 'medial'],
-                          ['G_cuneus', 'medial'],
-                          ['G_front_inf-Opercular', 'lateral'],
-                          ['G_front_inf-Orbital', 'lateral'],
-                          ['G_front_inf-Triangul', 'lateral'],
-                          ['G_front_middle', 'lateral'],
-                          ['G_front_sup', 'medial'],
-                          ['G_Ins_lg_and_S_cent_ins', 'lateral'],
-                          ['G_insular_short', 'lateral'],
-                          ['G_occipital_middle', 'lateral'],
-                          ['G_occipital_sup', 'medial'],
-                          ['G_oc-temp_lat-fusifor', 'medial'],
-                          ['G_oc-temp_med-Lingual', 'medial'],
-                          ['G_oc-temp_med-Parahip', 'medial'],
-                          ['G_orbital', 'lateral'],
-                          ['G_pariet_inf-Angular', 'lateral'],
-                          ['G_pariet_inf-Supramar', 'lateral'],
-                          ['G_parietal_sup', 'lateral'],
-                          ['G_postcentral', 'lateral'],
-                          ['G_precentral', 'lateral'],
-                          ['G_precuneus', 'medial'],
-                          ['G_rectus', 'medial'],
-                          ['G_subcallosal', 'medial'],
-                          ['G_temp_sup-G_T_transv', 'lateral'],
-                          ['G_temp_sup-Lateral', 'lateral'],
-                          ['G_temp_sup-Plan_polar', 'medial'],
-                          ['G_temp_sup-Plan_tempo', 'lateral'],
-                          ['G_temporal_inf', 'lateral'],
-                          ['G_temporal_middle', 'lateral'],
-                          ['Lat_Fis-ant-Horizont', 'lateral'],
-                          ['Lat_Fis-ant-Vertical', 'lateral'],
-                          ['Lat_Fis-post', 'lateral'],
-                          # ['Medial_wall', 'lateral'],
-                          ['Pole_occipital', 'lateral'],
-                          ['Pole_temporal', 'lateral'],
-                          ['S_calcarine', 'medial'],
-                          ['S_central', 'lateral'],
-                          ['S_cingul-Marginalis', 'medial'],
-                          ['S_circular_insula_ant', 'lateral'],
-                          ['S_circular_insula_inf', 'lateral'],
-                          ['S_circular_insula_sup', 'lateral'],
-                          ['S_collat_transv_ant', 'medial'],
-                          ['S_collat_transv_post', 'medial'],
-                          ['S_front_inf', 'lateral'],
-                          ['S_front_middle', 'lateral'],
-                          ['S_front_sup', 'lateral'],
-                          ['S_interm_prim-Jensen', 'lateral'],
-                          ['S_intrapariet_and_P_trans', 'lateral'],
-                          ['S_oc_middle_and_Lunatus', 'lateral'],
-                          ['S_oc_sup_and_transversal', 'lateral'],
-                          ['S_occipital_ant', 'lateral'],
-                          ['S_oc-temp_lat', 'lateral'],
-                          ['S_oc-temp_med_and_Lingual', 'medial'],
-                          ['S_orbital_lateral', 'lateral'],
-                          ['S_orbital_med-olfact', 'lateral'],
-                          ['S_orbital-H_Shaped', 'lateral'],
-                          ['S_parieto_occipital', 'medial'],
-                          ['S_pericallosal', 'medial'],
-                          ['S_postcentral', 'lateral'],
-                          ['S_precentral-inf-part', 'lateral'],
-                          ['S_precentral-sup-part', 'lateral'],
-                          ['S_suborbital', 'medial'],
-                          ['S_subparietal', 'medial'],
-                          ['S_temporal_inf', 'lateral'],
-                          ['S_temporal_sup', 'lateral'],
-                          ['S_temporal_transverse', 'lateral']]"""
-        for roi, roi_view in [self.atlases[self.fs_version]['Destrieux']['ROIs'], self.atlases[self.fs_version]['Destrieux']['views']]:
-            for hemi in hemis:
-                orig_annot = read_annot(os.path.join(fs_home, 'subjects', 'fsaverage', 'label', '%s.aparc.a2009s.annot' % hemi))
-                new_vertices = np.ones(orig_annot[0].shape, dtype='int32') * -1
-                new_colors = [[0, 0, 0, 0, 23234234]]
-                new_names = [b'unknown']
-                roi_idx = orig_annot[2].index(roi.encode('ascii'))
-                new_vertices[orig_annot[0] == roi_idx] = 1
-                new_colors.append([0, 0, 255, 0, 2647065])
-                new_names.append(orig_annot[2][roi_idx])
-                roi_annot_file = '/tmp/tmp_roi.annot'
-                write_annot(roi_annot_file, new_vertices, np.array(new_colors, dtype='int32'), new_names)
-                if hemi == 'lh' and roi_view == 'lateral':
-                    rotation = '0'
-                elif hemi == 'lh' and roi_view == 'medial':
-                    rotation = '180'
-                elif hemi == 'rh' and roi_view == 'lateral':
-                    rotation = '180'
-                elif hemi == 'rh' and roi_view == 'medial':
-                    rotation = '0'
-                if roi[:2] == 'S_':
-                    surf = os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.inflated' % hemi)+':curvature_method=binary'
-                else:
-                    surf = os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi)+':curvature_method=off'
-                cmd = ['freeview',
-                       '-f', surf +
-                       ':edgethickness=0' +
-                       ':annot=%s' % roi_annot_file,
-                       # '-view', view,
-                       # '-zoom', '1.5',
-                       '-layout', '1', '-viewport', '3d',
-                       '-cam', 'Dolly', '1.5', 'azimuth', rotation,
-                       '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (roi, hemi)), '0.5']
-                # print(' '.join(cmd))
-                subprocess.call(cmd)
-
-        for lobe, rois in self.lobe_ROIs:
-            for hemi in hemis:
-                orig_annot = read_annot(os.path.join(fs_home, 'subjects', 'fsaverage', 'label', '%s.aparc.annot' % hemi))
-                new_vertices = np.ones(orig_annot[0].shape, dtype='int32') * -1
-                new_colors = [[0, 0, 0, 0, 23234234]]
-                new_names = [b'unknown']
-                for roi in rois:
+        for atlas in self.atlases[self.version].keys():
+            for roi, roi_view in [self.atlases[self.version][atlas]['ROIs'], self.atlases[self.version][atlas]['views']]:
+                for hemi in hemis:
+                    orig_annot = read_annot(os.path.join(fs_home, 'subjects', 'fsaverage', 'label', '%s.%s.annot' % (hemi, aparc_code[atlas])))
+                    new_vertices = np.ones(orig_annot[0].shape, dtype='int32') * -1
+                    new_colors = [[0, 0, 0, 0, 23234234]]
+                    new_names = [b'unknown']
                     roi_idx = orig_annot[2].index(roi.encode('ascii'))
                     new_vertices[orig_annot[0] == roi_idx] = 1
-                new_colors.append([0, 0, 255, 0, 2647065])
-                new_names.append(lobe.encode('ascii'))
-                roi_annot_file = '/tmp/tmp_roi.annot'
-                write_annot(roi_annot_file, new_vertices, np.array(new_colors, dtype='int32'), new_names)
-                if hemi == 'lh':
-                    for rotation, roi_view in [['0', 'lateral'], ['180', 'medial']]:
-                        cmd = ['freeview',
-                               '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
-                               ':edgethickness=0' +
+                    new_colors.append([0, 0, 255, 0, 2647065])
+                    new_names.append(orig_annot[2][roi_idx])
+                    roi_annot_file = '/tmp/tmp_roi.annot'
+                    write_annot(roi_annot_file, new_vertices, np.array(new_colors, dtype='int32'), new_names)
+                    if hemi == 'lh' and roi_view == 'lateral':
+                        rotation = '0'
+                    elif hemi == 'lh' and roi_view == 'medial':
+                        rotation = '180'
+                    elif hemi == 'rh' and roi_view == 'lateral':
+                        rotation = '180'
+                    elif hemi == 'rh' and roi_view == 'medial':
+                        rotation = '0'
+                    cmd = ['freeview',
+                           '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
+                               ':edgethickness=0'+
                                ':curvature_method=off' +
                                ':annot=%s' % roi_annot_file,
-                               '-layout', '1', '-viewport', '3d',
-                               '-cam', 'Dolly', '1.5', 'azimuth', rotation,
-                               '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (lobe, hemi)), '0.5']
-                        # print(' '.join(cmd))
-                        subprocess.call(cmd)
-                elif hemi == 'rh':
-                    for rotation, roi_view in [['0', 'medial'], ['180', 'lateral']]:
-                        cmd = ['freeview',
-                               '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
-                               ':edgethickness=0' +
-                               ':curvature_method=off' +
-                               ':annot=%s' % roi_annot_file,
-                               '-layout', '1', '-viewport', '3d',
-                               '-cam', 'Dolly', '1.5', 'azimuth', rotation,
-                               '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (lobe, hemi)), '0.5']
-                        # print(' '.join(cmd))
-                        subprocess.call(cmd)
+                           # '-view', view,
+                           # '-zoom', '1.5',
+                           '-layout', '1', '-viewport', '3d',
+                           '-cam', 'Dolly', '1.5', 'azimuth', rotation,
+                           '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (roi, hemi)), '0.5']
+                    # print(' '.join(cmd))
+                    subprocess.call(cmd)
+
+            for lobe, rois in self.lobe_ROIs[atlas]:
+                for hemi in hemis:
+                    orig_annot = read_annot(os.path.join(fs_home, 'subjects', 'fsaverage', 'label', '%s.%s.annot' % (hemi, aparc_code[atlas])))
+                    new_vertices = np.ones(orig_annot[0].shape, dtype='int32') * -1
+                    new_colors = [[0, 0, 0, 0, 23234234]]
+                    new_names = [b'unknown']
+                    for roi in rois:
+                        roi_idx = orig_annot[2].index(roi.encode('ascii'))
+                        new_vertices[orig_annot[0] == roi_idx] = 1
+                    new_colors.append([0, 0, 255, 0, 2647065])
+                    new_names.append(lobe.encode('ascii'))
+                    roi_annot_file = '/tmp/tmp_roi.annot'
+                    write_annot(roi_annot_file, new_vertices, np.array(new_colors, dtype='int32'), new_names)
+                    if hemi == 'lh':
+                        for rotation, roi_view in [['0', 'lateral'], ['180', 'medial']]:
+                            cmd = ['freeview',
+                                   '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
+                                   ':edgethickness=0' +
+                                   ':curvature_method=off' +
+                                   ':annot=%s' % roi_annot_file,
+                                   '-layout', '1', '-viewport', '3d',
+                                   '-cam', 'Dolly', '1.5', 'azimuth', rotation,
+                                   '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (lobe, hemi)), '0.5']
+                            # print(' '.join(cmd))
+                            subprocess.call(cmd)
+                    elif hemi == 'rh':
+                        for rotation, roi_view in [['0', 'medial'], ['180', 'lateral']]:
+                            cmd = ['freeview',
+                                   '-f', os.path.join(fs_home, 'subjects', 'fsaverage', 'surf', '%s.pial' % hemi) +
+                                   ':edgethickness=0' +
+                                   ':curvature_method=off' +
+                                   ':annot=%s' % roi_annot_file,
+                                   '-layout', '1', '-viewport', '3d',
+                                   '-cam', 'Dolly', '1.5', 'azimuth', rotation,
+                                   '-ss', os.path.join(output_folder, 'location_%s_%s.jpeg' % (lobe, hemi)), '0.5']
+                            # print(' '.join(cmd))
+                            subprocess.call(cmd)
 
         # Prepare baseline data for aseg ROIs
         import nibabel as nib
@@ -1475,7 +1217,7 @@ class proc_pipeline:
             dist_neighbour[n] = all_dist.min()
             vtx_neighbour[n] = np.argmin(all_dist)
         # Loop through specified ROIs
-        for roi in self.atlases[self.fs_version][atlas]['ROIs']:
+        for roi in self.atlases[self.version][atlas]['ROIs']:
             label_file = os.path.join(subjects_dir, subject, 'label_%s' % atlas, 'pial', '%s.%s.label' % (hemi, roi))
             if os.path.exists(label_file):
                 vtx_chosen_ROI = np.loadtxt(label_file, skiprows=2)[:, 0].astype(int)  # list of pial indexes corresponding to ROI
@@ -1503,7 +1245,7 @@ class proc_pipeline:
             gauscurv_file = os.path.join(self.subjects_dir, subject, 'surf', '%s.%s_gauscurv.asc' % (hemi, surfname))
             vtx_coord_curv = np.loadtxt(gauscurv_file)
             curv = vtx_coord_curv[:, 4]
-            ROIs = self.atlases[self.fs_version][atlas]['ROIs']
+            ROIs = self.atlases[self.version][atlas]['ROIs']
             surf_area = np.full(len(ROIs), np.nan)
             gauscurv = np.full(len(ROIs), np.nan)
             for i, roi in enumerate(ROIs):
@@ -1537,10 +1279,7 @@ class proc_pipeline:
                     surf_area[i] = areas.sum()/3
                     gauscurv[i] = np.sum(areas*gausdens)/3
 
-            if atlas == 'DesikanKilliany':
-                out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.aparc_stats_area_%s.txt' % (hemi, surfname))
-            elif atlas == 'Destrieux':
-                out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.aparca2009s_stats_area_%s.txt' % (hemi, surfname))
+            out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.%s_stats_area_%s.txt' % (hemi, aparc_code[atlas], surfname))
             with open(out_file, 'w') as f_out:
                 if atlas == 'DesikanKilliany':
                     f_out.write('%s.aparc.area' % (hemi))
@@ -1554,10 +1293,7 @@ class proc_pipeline:
                     f_out.write('\t%1.6f' % surf_area[i])
                 f_out.write('\t%1.6f\n' % np.nansum(surf_area))
 
-            if atlas == 'DesikanKilliany':
-                out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.aparc_stats_gauscurv_%s_FS.txt' % (hemi, surfname))
-            elif atlas == 'Destrieux':
-                out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.aparca2009s_stats_gauscurv_%s_FS.txt' % (hemi, surfname))
+            out_file = os.path.join(self.subjects_dir, subject, 'stats2table', '%s.%s_stats_gauscurv_%s_FS.txt' % (hemi, aparc_code[atlas], surfname))
             with open(out_file, 'w') as f_out:
                 if atlas == 'DesikanKilliany':
                     f_out.write('%s.aparc.gauscurv' % hemi)
@@ -1595,11 +1331,12 @@ class proc_pipeline:
         return subjSesAcq_id
 
     def get_subjSesAcq_T1s(self, subjects):
+        subjSesAcq_list = []
         subjSesAcqs_T1s = []
         for subj_id in subjects.keys():
-            for sess_id in subjects[subj_id].keys():
-                for acq_label in subjects[subj_id][sess_id].keys():
-                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, sess_id, acq_label)
+            for ses_id in subjects[subj_id].keys():
+                for acq_label in subjects[subj_id][ses_id].keys():
+                    subjSesAcq_id = self.get_subjSesAcq_id(subj_id, ses_id, acq_label)
                     T1_file = os.path.join(self.bids_database, subj_id, ses_id, 'anat', '%s.nii.gz' % subjSesAcq_id)
                     if os.path.exists(T1_file):
                         subjSesAcq_list.append(subjSesAcq_id)
@@ -1607,4 +1344,4 @@ class proc_pipeline:
                     else:
                         logging.WARNING("""File %s not found: batch-dl+direct will skip subject %s, you might want
                         to process this subject manually.""" % (T1_file, subjSesAcq_id))
-        return subjSesAcqs_T1s
+        return subjSesAcq_list, subjSesAcqs_T1s

@@ -20,7 +20,7 @@ from numpy.polynomial import Polynomial as poly_model
 class normative_model_template():
 
     def __init__(self, model_id, measured_metrics, metric_names, covariate_values, covariate_names,
-                 dataset_id, proc_pipeline_id, cov2float, subject):
+                 dataset_id, proc_pipeline_id, proc_pipeline_version, cov2float, subject):
         """Constructor for the developmental model. Models are identified by unique combinations of model_name and
         dataset_id used to train it. The model folder is the folder to save/load fitted model parameters. Developmental
         models inherit ScanOMetrics_project attributes like measured_metrics, metric_names, covariates, subject dict,
@@ -33,6 +33,7 @@ class normative_model_template():
         """
         # Initialize attributes inherited from Scanometrics_project
         self.proc_pipeline_id = proc_pipeline_id  # ID of pipeline used for generate measured_metrics used to fit the model
+        self.proc_pipeline_version = proc_pipeline_version
         self.measured_metrics = measured_metrics.copy()
         self.metric_names = metric_names.copy()
         self.covariate_values = covariate_values.copy()
@@ -42,7 +43,7 @@ class normative_model_template():
 
         # Set own attributes
         self.model_id = model_id
-        self.model_dataset_id = model_id + '_' + dataset_id   # Mixture of normative model (eg Polynomial) and training dataset ID (eg CHFIRST)
+        self.model_dataset_id = model_id + '_' + dataset_id + '_som-v' + __version__.replace('.', '-')  # Mixture of normative model (eg Polynomial) and training dataset ID (eg CHFIRST)
 
         # if subjects is None:  # Added at some point but probably not required: users should be able to load a trained model without downloading the training data.
         #     subjects = glob1(os.path.join(bids_folder, 'derivatives', 'scanometrics', 'sub-*'))
@@ -186,14 +187,14 @@ class Polynomial(normative_model_template):
     model name with name of training dataset to keep track of combination used for training.
     """
 
-    def __init__(self, measured_metrics, metric_names, covariate_values, covariate_names, dataset_id, proc_pipeline_id, cov2float, subject):
+    def __init__(self, measured_metrics, metric_names, covariate_values, covariate_names, dataset_id, proc_pipeline_id, proc_pipeline_version, cov2float, subject):
         """
         Class constructor. Initialize everything with empty arrays, matrices and lists.
         :param model_dataset_id: unique ID of dataset being processed.
         :type model_dataset_id: string
         """
         super().__init__('Polynomial', measured_metrics, metric_names, covariate_values, covariate_names,
-                         dataset_id, proc_pipeline_id, cov2float, subject)
+                         dataset_id, proc_pipeline_id, proc_pipeline_version, cov2float, subject)
         self.age_vec          = None
         self.fit_outputs      = None
 
@@ -357,21 +358,21 @@ class Polynomial(normative_model_template):
                 if N_cycl > 0:  # original checks for size of predict_vec, should be equivalent
                     self.fit_outputs[metric_status]['residuals'][:, i] = self.measured_metrics[metric_status][:, i] - predict_vec.mean(1)
 
-    def predict_values(self, new_covariate_values):
+    def predict_values(self, age):
         # Loop through metrics to predict and compute residuals on
         predicted_values = {}
         for k in self.measured_metrics.keys():
-            predicted_values[k] = np.full((new_covariate_values.shape[0], self.measured_metrics[k].shape[1]), np.nan)
+            predicted_values[k] = np.full((len(age), self.measured_metrics[k].shape[1]), np.nan)
             for i in range(self.measured_metrics[k].shape[1]):
-                tmp = np.full((new_covariate_values.shape[0], self.fit_outputs[k]['fit_deg'].shape[1]), np.nan)
+                tmp = np.full((len(age), self.fit_outputs[k]['fit_deg'].shape[1]), np.nan)
                 for n in range(self.fit_outputs[k]['fit_deg'].shape[1]):
                     fit_deg = self.fit_outputs[k]['fit_deg'][i, n]
                     if ~np.isnan(fit_deg):
                         fit_deg = int(fit_deg)
                         c = poly_model.basis(fit_deg)
                         c.coef = self.fit_outputs[k]['fit_coeffs'][:fit_deg+1, i, n].copy()
-                        for j in range(new_covariate_values.shape[0]):
-                            tmp[j, n] = c(new_covariate_values[j, self.covariate_names.index('age')])
+                        for j in range(len(age)):
+                            tmp[j, n] = c(age[j])
                 if self.fit_outputs[k]['fit_good'][i, :].sum()>0:
                     predicted_values[k][:, i] = np.nanmean(tmp[:, self.fit_outputs[k]['fit_good'][i, :] > 0], axis=1)
                 else:

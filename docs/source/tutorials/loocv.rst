@@ -34,7 +34,7 @@ CDR = 0:
 
     # Load subjects and extract list of healthy subject IDs
     bids_directory = '..'
-    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float.copy(), n_threads=1)
+    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float.copy(), n_threads=1, atlas='DesikanKilliany')
     SOM.load_subjects()
     HC_subj_ids = []
     for subj_id in SOM.subject.keys():
@@ -55,7 +55,7 @@ Then the following code defines the LOOCV function:
     def run_loocv(subject_to_exclude, HC_list, bids_folder):
         SOM_in = ScanOMetrics_project(shared_bids_folder, 'dldirect', acq_pattern='*T1w', dataset_id='OASIS3_dldirect_LOOCV-exclude-%s' % subject_to_exclude,
                                       cov2float=cov2float.copy(),
-                                      n_threads=1)
+                                      n_threads=1, atlas='DesikanKilliany')
         LOO_HC_list = HC_list.copy()
         LOO_HC_list.remove(subject_to_exclude)
         SOM_in.load_subjects(subjects_include=LOO_HC_list)
@@ -115,7 +115,7 @@ Full script
     def run_loocv(subject_to_exclude, HC_list, bids_folder):
         SOM_in = ScanOMetrics_project(shared_bids_folder, 'dldirect', acq_pattern='*T1w', dataset_id='OASIS3_dldirect_LOOCV-exclude-%s' % subject_to_exclude,
                                       cov2float=cov2float.copy(),
-                                      n_threads=1)
+                                      n_threads=1, atlas='DesikanKilliany')
         LOO_HC_list = HC_list.copy()
         LOO_HC_list.remove(subject_to_exclude)
         SOM_in.load_subjects(subjects_include=LOO_HC_list)
@@ -160,7 +160,7 @@ Full script
 
     # Load subjects and extract list of healthy subject IDs
     bids_directory = '..'
-    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float.copy(), n_threads=1)
+    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float.copy(), n_threads=1, atlas='DesikanKilliany')
     SOM.load_subjects()
     HC_subj_ids = []
     for subj_id in SOM.subject.keys():

@@ -17,10 +17,10 @@ scanometrics.utils.bids\_util module
    :undoc-members:
    :show-inheritance:
 
-scanometrics.utils.dicom2nifti module
--------------------------------------
+scanometrics.utils.dicom2bids module
+------------------------------------
 
-.. automodule:: scanometrics.utils.dicom2nifti
+.. automodule:: scanometrics.utils.dicom2bids
    :members:
    :undoc-members:
    :show-inheritance:
@@ -49,10 +49,26 @@ scanometrics.utils.misc module
    :undoc-members:
    :show-inheritance:
 
+scanometrics.utils.pacs2bids module
+-----------------------------------
+
+.. automodule:: scanometrics.utils.pacs2bids
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scanometrics.utils.stats module
 -------------------------------
 
 .. automodule:: scanometrics.utils.stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+scanometrics.utils.zenodo\_api module
+-------------------------------------
+
+.. automodule:: scanometrics.utils.zenodo_api
    :members:
    :undoc-members:
    :show-inheritance:

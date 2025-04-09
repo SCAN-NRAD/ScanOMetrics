@@ -12,8 +12,10 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   scanometrics.GUI
    scanometrics.cross_validation
    scanometrics.processing
+   scanometrics.scripts
    scanometrics.utils
 
 Submodules

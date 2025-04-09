@@ -29,10 +29,11 @@ which are mapped to numerical values using the following dictionary::
                  'sequence': {'': 0, 'MPRAGE_GRAPPA2': 1, 'Sagittal_3D_Accelerated_T1': 2, 't1_mpr_1mm_p2': 3, 't1_mpr_1mm_p2_pos50': 4, 't1_mpr_ns_sag': 5, 't1_mprage_sag_isoWU': 6}
                  }
 
-By default, the proccesing pipeline is set to 'freesurfer'. Alternative pipelines include 'dldirect'. To instanciate a
-Scan-O-Metrics project using 'dldirect' processed data, run the following::
+By default, the proccesing pipeline is set to 'freesurfer'. Alternative pipelines include 'dldirect'. Both pipelines can
+use either the `DesikanKilliany` or `Destrieux` parcellation atlases. To instanciate a Scan-O-Metrics project using the
+`dldirect` processed data and the `DesikanKilliany` atlas, run the following::
 
-    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float)
+    SOM = ScanOMetrics_project(bids_directory, proc_pipeline='dldirect', cov2float=cov2float, atlas='DesikanKilliany')
 
 New subjects can then be loaded using the `load_subjects()` method. By default, `load_subjects()` loads all available
 subjects and covariates it finds in `participants.tsv`, as well as all scans and covariates available in each subjects'
@@ -66,15 +67,15 @@ Outliers based on standard deviation from samples with matching age can be flagg
 where `sigma` sets how many standard deviations defines an outlier, and `reference` allows switching between deviations in
 'measured_metrics' data, or the 'residuals' after model fitting, which is used in a 2nd step (see below)::
 
-    SOM.flag_outliers(1.5, 'measured_metrics')
+    SOM.normativeModel.flag_outliers(1.5, 'measured_metrics')
 
 Finally, the normative model can be fitted with `normativeModel.fit()`. As fitting relies on uncertainty estimates, the
 uncertainty is first set to 1 for all variables::
 
     # Sets uncertainty to one as computation of uncertainty is done afterwards.
-    dummy_uncertainty = {}
+    SOM.normativeModel.uncertainty = {}
     for k in SOM.measured_metrics.keys():
-        dummy_uncertainty[k] = np.ones(SOM.measured_metrics[k].shape[1])
+        SOM.normativeModel.uncertainty[k] = np.ones(SOM.measured_metrics[k].shape[1])
     SOM.normativeModel.fit(flag_opt=1, N_cycl=100, global_deg_max=22)
 
 Once there's a first estimate of the model, outliers can be flagged based on the deviation of residuals::
@@ -139,11 +140,11 @@ Full script
     # Set normative model
     SOM.set_normative_model('Polynomial')
     # Flag outliers based on deviations from measurements
-    SOM.flag_outliers(1.5, 'measured_metrics')
+    SOM.normativeModel.flag_outliers(1.5, 'measured_metrics')
     # Sets uncertainty to one for an initial model fit
-    dummy_uncertainty = {}
+    SOM.normativeModel.uncertainty = {}
     for k in SOM.measured_metrics.keys():
-        dummy_uncertainty[k] = np.ones(SOM.measured_metrics[k].shape[1])
+        SOM.normativeModel.uncertainty[k] = np.ones(SOM.measured_metrics[k].shape[1])
     SOM.normativeModel.fit(flag_opt=1, N_cycl=100, global_deg_max=22)
     # Flat outliers based on deviations from residuals
     SOM.normativeModel.flag_outliers(1.5, 'residuals')

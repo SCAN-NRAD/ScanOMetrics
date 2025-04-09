@@ -5,7 +5,7 @@ from scanometrics import _version_major, _version_minor, __version__
 # -- Project information
 
 project = 'scanometrics'
-copyright = '2024, SCAN-Lab'
+copyright = '2024-2025, SCAN-Lab'
 author = 'SCAN-Lab'
 
 release = '%d.%d' % (_version_major,_version_minor)
