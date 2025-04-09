@@ -49,14 +49,6 @@ scanometrics.utils.misc module
    :undoc-members:
    :show-inheritance:
 
-scanometrics.utils.pacs2bids module
------------------------------------
-
-.. automodule:: scanometrics.utils.pacs2bids
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 scanometrics.utils.stats module
 -------------------------------
 
