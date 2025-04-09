@@ -28,7 +28,8 @@ dependencies = [
     "pandas~=2.2.2",
     "plotly~=5.22.0",
     "reportlab~=4.2.2",
-    "tqdm>=4.67.1"
+    "tqdm>=4.67.1",
+    "pydicom"
 ]
 dynamic = ["version", "description"]
 
