@@ -5,7 +5,7 @@ Setup
 
 Create virtual environment (optional)
 -------------------------------------
-Download and install `Miniconda <https://conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_ and
+Download and install `Miniconda <https://conda.io/projects/conda/en/latest/user-guide/install/linux.html>`__ and
 create a new conda environment:
 
 .. code-block:: console
@@ -16,7 +16,13 @@ create a new conda environment:
 Installation
 ------------
 
-You can install ScanOMetrics by cloning the code from  and using `pip`. First `cd` to the
+.. note::
+
+   ScanOMetrics is distributed with normative models that include training data, which are large files (up to 250 Mb).
+   If you want the corresponding `.pkl` files to be downloaded when you clone the respository, you need to have LFS
+   (large file storage) installed, as explained on this `LFS installation page <https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage>`_
+
+You can install ScanOMetrics by cloning the code from and using `pip`. First `cd` to the
 folder you want to download ScanOMetrics to, and run the following (a `scanometrics` folder
 in your current directory will be created):
 
@@ -30,14 +36,14 @@ Data formatting
 ---------------
 
 ScanOMetrics heavily relies on the dataset structure to follow the format recommended by
-the `BIDS initiative on Brain Imaging Data Structure <https://bids.neuroimaging.io/>`_. Make
+the `BIDS initiative on Brain Imaging Data Structure <https://bids.neuroimaging.io/>`__. Make
 sure your data is properly organized before running ScanOMetrics.
 
 Processing MRI data
 -------------------
 
-ScanOMetrics relies on either `Freesurfer <https://surfer.nmr.mgh.harvard.edu/>`_ or
-`DL+DiReCT <https://github.com/SCAN-NRAD/DL-DiReCT>`_ to process MRI scans available in BIDS directories.
+ScanOMetrics relies on either `Freesurfer <https://surfer.nmr.mgh.harvard.edu/>`__ or
+`DL+DiReCT <https://github.com/SCAN-NRAD/DL-DiReCT>`__ to process MRI scans available in BIDS directories.
 Check out the tutorial on `MRI processing <./tutorials/process_MRI_scans.html>`_ for more details.
 
 Single subject evaluation
@@ -63,4 +69,4 @@ Adding a processing module
 --------------------------
 
 We provide default processing modules, as wrappers around Freesurfer and DL+DiReCT. If you'd
-like to implement your own processing pipeline, you can follow some basic ideas `here <./tutorials/add_processing_module.html>`_.
+like to implement your own processing pipeline, you can follow some basic ideas on `how to add processing modules <./tutorials/add_processing_module.html>`_.
