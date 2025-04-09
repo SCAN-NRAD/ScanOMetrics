@@ -14,7 +14,121 @@ from pydicom import dcmread as pydicom_read_file
 from datetime import datetime
 import json
 import hashlib
-from .pacs2bids import seriesmapping, _generate_safeReading_random_code, accession2hash, scannercode
+
+seriesmapping = {# 't1_cs_mp2rage_1mm_INV1': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': ''},
+                 # 't1_cs_mp2rage_1mm_INV2': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w'},
+                 't1_cs_mp2rage_1mm_UNI_Images': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MP2RAGE'},
+                 't1_mprage_sag_1mm': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mprage_tra': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mprage_sag_1mm_ms': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mpr_adni_sag_iso_1mm_ns': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 'MPR_MS_fischl_freesurfer': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRfischl'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TR 2.3_IR 0.9': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TI 0.9_TR 2': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TR 1.7_IR 0.9': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TR 2.6_IR 1.1': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TR 1.84_IR 1.1': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TI 0.8_TR 1.7': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TI 1.1_TR 2.3': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TI 1.1_TR 2': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni3_sag_iso_1mm_ns_TR 2.3_IR 0.9': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mprage_sag_1mm_ns': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mprage_sag_1mm_we': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mprage_sag_1mm_ns_fischl_freesurfer': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRfischl'},
+                 # 'flair_space_sag_1mm': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'FLAIR', 'sequence': 'MPRstd'},
+                 't1_mprage_sag_p2_iso': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRstd'},
+                 't1_mprage_sag_1mm_adni_ep': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_sag_iso_1mm_we': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mpr_adni_sag_iso_we_1mm': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 't1_mprage_sag_1mm_fischl_dm': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRfischl'},
+                 't1_mprage_sag_1mm_ce_fs_dm': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'ce-Gd_T1w', 'sequence': 'MPRfischl'},
+                 't1_cs_mp2rage_1mm_UNI_Images': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRadni'},
+                 'Ax 3D T1 Gado': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'Ax3DGE'},
+                 'cs_T1W_3D_TFE_km': {'modality': 'anat', 'file_in': 'T1', 'file_suffix': 'T1w', 'sequence': 'MPRtfe'}
+                 }
+
+def _generate_safeReading_random_code(length=10, seed=None):
+    """Generate random alphanumerical code from a set without commonly misread characters
+    (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3541865), starting with a letter for proper sorting in file browsers.
+
+    :param length: specifies length of random string, defaults to 10
+    :type length: int
+    :param seed: seed for random string generator, defaults to None
+    :type seed: int, optional
+    :return: random alphanumerical string with given length
+    :rtype: string
+    """
+
+    safe_alpha_set = 'ACGHJKLMNPQRUVWXY'
+    safe_alphanumerical_set = 'ACGHJKLMNPQRUVWXY469'
+    random.seed(seed)
+    return ''.join(random.choices(safe_alpha_set)+random.choices(safe_alphanumerical_set, k=length-1))
+
+def accession2hash(patient_id, accession_number, bids_directory, hash_length=8):
+    """Function to retrieve hash code from local file, create and add random hash if not found. Automatically adds a
+    .gitignore file to avoid unintended addition to a git repo."""
+    # If local file exists, check if input already has a random key
+    key_file = os.path.join(bids_directory, 'mapping.keys')
+    sub_key = ''
+    ses_key = ''
+    if os.path.exists(key_file):
+        with open(key_file, 'r') as key_in:
+            for row in DictReader(key_in, delimiter='\t'):
+                if row['PatientID'] == patient_id:
+                    sub_key = row['SubKey']
+                if row['AccessionNumber'] == accession_number:
+                    if row['PatientID'] != patient_id:
+                        print('ERROR: session key found but PatientID does not match')
+                    else:
+                        ses_key = row['SesKey']
+                        print('INFO: existing key pair found: ("%s", "%s") => ("%s", "%s")' % (patient_id, accession_number, sub_key, ses_key))
+    # If file does't exist, create it along with a .gitignore file to avoid unintended upload
+    else:
+        with open(key_file, 'w') as key_out:
+            key_out.write('PatientID\tAccessionNumber\tSubKey\tSesKey\n')
+        gitignore_file = os.path.join(bids_directory, '.gitignore')
+        ignored_file = False
+        if os.path.exists(gitignore_file):
+            with open(gitignore_file, 'r') as git_in:
+                for row in git_in:
+                    if 'mapping.keys' in row:
+                        ignored_file = True
+            if not ignored_file:
+                with open(gitignore_file, 'a') as git_out:
+                    git_out.write('mapping.keys')
+        else:
+            with open(gitignore_file, 'w') as git_out:
+                git_out.write('mapping.keys')
+    # If ses_key=='' or sub_key=='', create missing ones and add them to the local file
+    if ses_key == '' or sub_key == '':
+        if sub_key == '':
+            sub_key = 'sub-'+_generate_safeReading_random_code(length=hash_length)
+        if ses_key == '':
+            ses_key = 'ses-'+_generate_safeReading_random_code(length=hash_length)
+        print('INFO: new key pair generated: ("%s", "%s") => ("%s","%s")' % (patient_id, accession_number, sub_key, ses_key))
+        with open(key_file, 'a') as key_out:
+            key_out.write('%s\t%s\t%s\t%s\n' % (patient_id, accession_number, sub_key, ses_key))
+    return sub_key, ses_key
+
+def scannercode(institution, device):
+    if device == '27272' or device == '169589':
+        return 2
+    elif device == '41437':
+        return 3
+    elif device == '40186' or device == '170029':
+        return 4
+    elif device == '40270':
+        return 5
+    elif device == '175711':
+        return 51
+    elif device == '20608' or device == '35028':
+        return 6
+    elif device == '67081':
+        return 61
+    elif device == '166117':
+        return 8
+    else:
+        return -1  # Sets scanner to -1 when it is not preset in scannercode (was set to "${INST: -1}" in dicom_extract_demographics.sh)
 
 def main():
     # Process inputs
