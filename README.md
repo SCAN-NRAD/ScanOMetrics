@@ -17,13 +17,7 @@ When publishing work related to ScanOMetrics, please cite the following articles
 >     Front Neurol. 8:727 (2018).
 >     https://doi.org/10.3389/fneur.2017.00727
 
->     Romascano D, Rebsamen M, Radojewski P, Blattner T, McKinley R, Wiest R, Rummel C.
->     Cortical thickness and grey-matter volume anomaly detection in individual MRI scans: Comparison of two methods.
->     Neuroimage Clin. 43:103624 (2024)
->     https://doi.org/10.1016/j.nicl.2024.103624
-
 Documentation
 =============
 
 For installation and usage of the ScanOMetrics package, check our [documentation](https://scanometrics.readthedocs.io/en/latest/)
-

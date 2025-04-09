@@ -42,4 +42,5 @@ def WARNING(msg, prefix=''):
 def ERROR(msg, prefix=''):
     if __VERBOSE_LEVEL__ >= 1:
         msg = prefix+"\033[0;30;41m[ ERROR ]\033[0;31m %s\033[0m\n" % msg
+    print(msg)  # Otherwise message isn't printed by exit() in some platforms
     exit(Exception(msg))

@@ -1,10 +1,14 @@
 Tutorials
 =========
 
-Here are several tutorials showcasing how to use the ScanOMetrics package:
+ScanOMetrics can be used through either the `dedicated GUI <./tutorials/gui.html>`_, or our `command line implementation <./tutorials/command_line.html>`_.
 
-Contents
---------
+.. toctree::
+
+    tutorials/gui
+    tutorials/command_line
+
+Command line usage is intended for users with basic knowledge in python programming:
 
 .. toctree::
 
@@ -14,3 +18,4 @@ Contents
     tutorials/fit_normative_data
     tutorials/add_processing_module
     tutorials/loocv
+    tutorials/dicom2bids

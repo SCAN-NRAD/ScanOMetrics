@@ -16,10 +16,10 @@ First create a SOM instance with the bids directory containing your subjects of 
 To list the available models in the scanometrics default folder, you can run
 `SOM.list_normative_models()`. To load a given model you can run::
 
-    model_name = "Polynomial_dldirect_cleanOASIS3"  # <-- example to be edited
+    model_name = "Polynomial_dldirect_v1-0-3_DesikanKilliany_OASIS3_som-v0-1-0.pkl"  # <-- example to be edited
     SOM.load_normative_model(model_name)
 
-where <model_name> is the identifier for the model you want to load. Here, `cleanOASIS3` refers to
+where `<model_name>` is the identifier for the model you want to load. Here, `OASIS3` refers to
 the OASIS3 healthy control dataset, after removing scans that had more than 5% of abnormal
 regions in a Leave-one-out cross validation.
 
@@ -82,17 +82,17 @@ Full script
     from scanometrics.core import ScanOMetrics_project
     # Editable variables: bids directory, model_name, and subject_id
     bids_directory = "~/Downloads/OASIS3"  # <-- to be edited
-    model_name = "Polynomial_dldirect_cleanOASIS3"  # <-- to be edited. Use SOM.list_normative_models() to list available models
+    model_name = "Polynomial_dldirect_v1-0-3_DesikanKilliany_OASIS3_som-v0-1-0.pkl"  # <-- to be edited. Use SOM.list_normative_models() to list available models
     group_variable = 'diagnosis_subtype'  # <-- optional, to be edited. Name of the column in SOM.covariate_values to be used for selecting subjects to analyse
     group_label = 4  # <-- optional, to be edited. Selects subjects with CDR-3 as an example (corresponds to 4 in the covariate_values variable)
     # Evaluation of a subject against a normative model
     SOM = ScanOMetrics_project(bids_directory)
     SOM.load_normative_model(model_name)
     SOM.load_subjects()
-    SOM.load_proc_metrics(ref_metric_values=SOM.normativeModel.measured_metrics['orig'].copy(),
-                          ref_metric_names=SOM.normativeModel.metric_names.copy(),
-                          ref_covariate_values=SOM.normativeModel.covariate_values.copy(),
-                          ref_covariate_names=SOM.normativeModel.covariate_names.copy())
+    SOM.load_proc_metrics(ref_metric_values=SOM.normativeModel.measured_metrics['orig'],
+                          ref_metric_names=SOM.normativeModel.metric_names,
+                          ref_covariate_values=SOM.normativeModel.covariate_values,
+                          ref_covariate_names=SOM.normativeModel.covariate_names)
     group_analysis = SOM.test_group_differences(group_covariate=group_variable,
                                                 group_label=group_label,
                                                 matching_covariates=['sex', 'scanner', 'sequence'])

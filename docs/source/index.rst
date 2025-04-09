@@ -22,7 +22,7 @@ how to :ref:`install <installation>` our app.
 
    Romascano D, Rebsamen M, Radojewski P, Blattner T, McKinley R, Wiest R, Rummel C.
    Cortical thickness and grey-matter volume anomaly detection in individual MRI scans: Comparison of two methods.
-   Neuroimage Clin. 43:103624 (2024). https://doi.org/10.1016/j.nicl.2024.103624
+   NeuroImage Clin. 43, 103624 (2024). https://doi.org/10.1016/j.nicl.2024.103624
 
 
 Contents

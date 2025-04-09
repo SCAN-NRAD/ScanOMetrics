@@ -1,17 +1,18 @@
 """
 Core ScanOMetrics classes and methods
 """
-
-
+import io
 import pickle
 import numpy as np
 import os
 from scanometrics import normative_models, processing, __version__
 from scanometrics.utils import logging
+from scanometrics.utils.zenodo_api import list_normative_models, download_file
 from scanometrics.utils.stats import fdr
 from csv import DictReader
 from scipy.stats import norm, ttest_ind, chi2
 from numpy.polynomial import Polynomial as poly_model
+from PyQt5.QtWidgets import QMessageBox
 import marshal
 import types
 from shutil import copytree
@@ -32,7 +33,7 @@ class ScanOMetrics_project:
     ###############
 
     def __init__(self, bids_database, proc_pipeline='dldirect', dataset_id=None, cov2float={'sex': {'M': 0, 'm': 0,
-        'F': 1, 'f': 1}}, acq_pattern='*T1w', ses_delimiter="_", acq_delimiter="_", n_threads=-1):
+        'F': 1, 'f': 1}}, acq_pattern='*T1w', ses_delimiter="_", acq_delimiter="_", n_threads=-1, atlas='DesikanKilliany'):
         """
         ScanOMetrics_project constructor from bids_database path. BIDS database should at least contain a participants.tsv
         file to load subject names and fixed covariate_values. Pipeline for data processing can be set through the
@@ -74,12 +75,12 @@ class ScanOMetrics_project:
         self.covariate_names = []
         # Define and set processing pipeline used to generate the measured metrics
         self.metric_proc_pipeline = None
-        self.set_proc_pipeline(proc_pipeline)
+        self.set_proc_pipeline(proc_pipeline, atlas)
         # Reset normative model
         self.normativeModel = None
         # Set dataset_id
         if dataset_id is None:
-            dataset_id = '_'.join([proc_pipeline, os.path.basename(os.path.normpath(self.bids_database))])
+            dataset_id = '_'.join([self.metric_proc_pipeline.proc_pipeline_name, os.path.basename(os.path.normpath(self.bids_database))])
         self.dataset_id = dataset_id
         self.acq_pattern = acq_pattern
         # Set number of threads to maximum if set to -1
@@ -115,7 +116,10 @@ class ScanOMetrics_project:
                 row[k] = np.float64(row[k])
             except ValueError as ve:
                 if k in self.cov2float.keys():
-                    row[k] = self.cov2float[k][row[k]]
+                    if row[k] in self.cov2float[k].keys():
+                        row[k] = self.cov2float[k][row[k]]
+                    else:
+                        logging.ERROR("%s not in cov2float[%s] for ID=%s, ses_id=%s" % (row[k], k, ID, ses_id))
                 else:
                     logging.ERROR('ValueError for %s key (' % (k) + str(ve) + ') when running load_subjects(). Try adding categorical to'
                                   'numerical mapping in the cov2float dictionary when creating the ScanOMetrics_project'
@@ -193,7 +197,7 @@ class ScanOMetrics_project:
                 # Exclude covariate_names in covariates_exclude
                 if covariates_exclude is not None:
                     for k in [t for t in covariates_exclude if t in self.covariate_names]:
-                        print("Removing %s from 'covariate_names'" % k)
+                        logging.PRINT("Removing %s from 'covariate_names'" % k)
                         self.covariate_names.remove(k)
                 if 'scan_id' in self.covariate_names:
                     self.covariate_names.remove('scan_id')
@@ -219,12 +223,13 @@ class ScanOMetrics_project:
                         continue
                     if sub_ses_acq_exclude is not None and scan_id in sub_ses_acq_exclude:
                         continue
+                    row = {k: row[k] for k in self.covariate_names if k in row.keys()}
                     # Try converting everything to float, ValueErrors might rise from categorical variables, try cov2float and error exit if doesn't work
                     for k in self.covariate_names:
                         try:
                             row[k] = np.float64(row[k])
                         except ValueError as ve:
-                            if k in self.cov2float.keys():
+                            if k in self.cov2float.keys() and row[k] in self.cov2float[k].keys():
                                 row[k] = self.cov2float[k][row[k]]
                             else:
                                 logging.ERROR('ValueError for key %s, value "%s" and scan %s_%s_%s (error message was "' % (k, row[k], subj_id, ses_id, acq_label) + str(
@@ -233,7 +238,6 @@ class ScanOMetrics_project:
                                           'and run load_subjects() again. Check that input covariate files do not have "NA", '
                                           '"na", "N/A" etc... entries instead of "NaN", "nan", or "NAN" and replace them '
                                           'accordingly')
-                    self.covariate_values.append(np.array([row[k] for k in self.covariate_names], dtype='float')[None, :])
                     if subj_id not in self.subject.keys():
                         self.subject[subj_id] = {ses_id: {acq_label: {}}}
                         for covariate_name in self.covariate_names:
@@ -248,6 +252,11 @@ class ScanOMetrics_project:
                                 self.subject[subj_id][ses_id][acq_label] = {}
                                 for covariate_name in self.covariate_names:
                                     self.subject[subj_id][ses_id][acq_label][covariate_name] = row[covariate_name]
+                # Fill covariate values according to ordering of scans inside self.subject
+                for subj_id in self.subject.keys():
+                    for ses_id in self.subject[subj_id].keys():
+                        for acq_label in self.subject[subj_id][ses_id].keys():
+                            self.covariate_values.append(np.array([self.subject[subj_id][ses_id][acq_label][k] for k in self.covariate_names], dtype='float')[None, :])
         else:
             # Build covariate_names
             if covariates_include is not None:
@@ -296,23 +305,26 @@ class ScanOMetrics_project:
                             ses_reader = DictReader(f_ses, delimiter='\t')
                             for ses_row in ses_reader:  # Loop through repeats, update row dictionary each time
                                 ses_id = ses_row.pop('session_id')
+                                ses_row = {k: ses_row[k] for k in self.covariate_names if k in ses_row.keys()}
                                 logging.PRINT('ses_id=%s, sub_ses_exclude=%s, sub_ses_include=%s' % (ses_id, sub_ses_exclude, sub_ses_include))
                                 if ((sub_ses_exclude is not None) and ((ID+'_'+ses_id) in sub_ses_exclude))\
                                 or ((sub_ses_include is not None) and ((ID+'_'+ses_id) not in sub_ses_include)):
                                     continue
                                 logging.PRINT('Adding subject %s (session %s)' % (ID, ses_id))
+                                sub_acqs_matches = [os.path.basename(f).removeprefix('%s_%s_' % (ID, ses_id)).removesuffix('.gz').removesuffix('.nii') for f in glob(os.path.join(self.bids_database, ID, ses_id, 'anat', self.acq_pattern + '.nii*'))]
+                                sub_acqs = []
                                 if sub_ses_acq_include is not None:
-                                    sub_acqs = []
-                                    for sub_ses_acq in sub_ses_acq_include:
-                                        if '%s_%s_' % (ID, ses_id) in sub_ses_acq:
-                                            sub_acqs.append(sub_ses_acq.removeprefix('%s_%s_' % (ID, ses_id)))
+                                    for acq_id in sub_acqs_matches:
+                                        if self.get_subjSesAcq_id(ID, ses_id, acq_id) in sub_ses_acq_include:
+                                            sub_acqs.append(acq_id)
                                 else:
-                                    sub_acqs = [os.path.basename(f).removeprefix('%s_%s_' % (ID, ses_id)).removesuffix('.gz').removesuffix('.nii') for f in glob(os.path.join(self.bids_database, ID, ses_id, 'anat', self.acq_pattern + '.nii*'))]
+                                    sub_acqs = sub_acqs_matches.copy()
                                     if sub_ses_acq_exclude is not None:
-                                        for sub_ses_acq in sub_ses_acq_exclude:
-                                            if '%s_%s_' % (ID, ses_id) in sub_ses_acq and sub_ses_acq.removeprefix('%s_%s_' % (ID, ses_id)) in sub_acqs:
-                                                sub_acqs.remove(sub_ses_acq.removeprefix('%s_%s_' % (ID, ses_id)))
-                                self.add_ses_row(ID, row, ses_id, ses_row, sub_acqs)
+                                        for acq_id in sub_acqs_matches:
+                                            if self.get_subjSesAcq_id(ID, ses_id, acq_id) in sub_ses_acq_exclude:
+                                                sub_acqs.remove(acq_id)
+                                if len(sub_acqs) > 0:
+                                    self.add_ses_row(ID, row, ses_id, ses_row, sub_acqs)
                     else:
                         # No session files were found, directory should already contain anat, dwi, func, etc... folders
                         logging.WARNING('Subject %s has no session.tsv file. We recommend adopting a folder structure with'
@@ -323,24 +335,25 @@ class ScanOMetrics_project:
                         self.add_ses_row(ID, row, '', {}, sub_acqs)
         # Update self.covariate_values with np matrix
         self.covariate_values = np.vstack(self.covariate_values)
+        return len(self.subject)
 
     ############################
     #   DATA (PRE)PROCESSING   #
     ############################
 
-    def set_proc_pipeline(self, metric_proc_pipeline):
+    def set_proc_pipeline(self, metric_proc_pipeline, atlas):
         """
         Sets the pipeline used to process MRI scans and compute morphometric values for each participant. Should match
         `scanometrics/processing/<metric_proc_pipeline>.py`.
         """
         if hasattr(processing, metric_proc_pipeline):
-            self.metric_proc_pipeline = getattr(processing, metric_proc_pipeline).proc_pipeline(self.bids_database, ses_delimiter=self.ses_delimiter, acq_delimiter=self.acq_delimiter)
+            self.metric_proc_pipeline = getattr(processing, metric_proc_pipeline).proc_pipeline(self.bids_database, ses_delimiter=self.ses_delimiter, acq_delimiter=self.acq_delimiter, atlas=atlas)
         else:
             logging.ERROR("""Processing pipeline %s not found in scanometrics.processing module. Make sure the module file
 exists, that it has been added to the __init__.py file, and that scanometrics is up-to-date"
 with 'pip install -U .'""" % metric_proc_pipeline)
 
-    def run_proc_pipeline(self, n_threads=-1):
+    def run_proc_pipeline(self, subject_id=None, n_threads=None):
         """Runs metric_proc_pipeline(), which generates measured metric values based on n_threads. Can be used to process
         normative data, or a set of subjects to evaluate against a trained dataset.
         Proc pipelines work in a dedicated 'derivatives' folder. In the case of Freesurfer, it expects a single
@@ -356,7 +369,10 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         is currently achieved by having self.subject as a dictionary with subject_id as keys, and each value is another
         dict with session_id as keys, with a last dictionary with covariate names and values as key/value pairs."""
         # Call pipeline specific run_pipeline()
-        self.metric_proc_pipeline.run_pipeline(self.subject, self.n_threads)
+        if n_threads is None:
+            n_threads = -1
+        logging.PRINT("scanometrics.core: n_threads set to %d" % n_threads)
+        self.metric_proc_pipeline.run_pipeline(self.subject, n_threads, subject_id)
 
     def proc2table(self, n_threads=-1):
         """Method to convert pipeline specific outputs to a common table format. Has to be added to be able to import
@@ -365,9 +381,10 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         gathered into tables saved in <bids_database>/derivatives/<proc_pipeline>/<subject_id>_<session_id> folders
         by the user. Tables should match naming expected by self.metric_proc_pipeline.proc2metric(). In the case of
         freesurfer, this assumes that data to import is in a set of tables for each subject, located in
-        <bids_directory>/derivatives/freesurfer/<subject_id>_<session_id> and that subject IDs in the generated tables
+        <bids_directory>/derivatives/freesurfer_vX-X-X/<subject_id>_<session_id> and that subject IDs in the generated tables
         will be <subject_id>_<session_id>. If user processed freesurfer externally without using this format, they
-        should change participants.tsv and folder structure to match it.
+        should change participants.tsv and folder structure to match it. Freesurfer's version should be specified by
+        replacing vX-X-X with the appropriate value (done automatically when running processing from ScanOMetrics).
         TODO: implement a warning instead of error when stumbling uppon an ID mismatch when loading tables.
 
         :param n_threads: number of threads to use
@@ -422,19 +439,6 @@ with 'pip install -U .'""" % metric_proc_pipeline)
     ###################
     # NORMATIVE MODEL #
     ###################
-    def list_normative_models(self):
-        """
-        Lists available models in scanometrics/resources/normative_models. This is the default location for normative
-        models distributed with ScanOMetrics.
-        """
-        models_path = os.path.join(os.path.dirname(__file__), 'resources',  'normative_models')
-        normative_model_files = glob(os.path.join(models_path, '*.pkl'))
-        logging.PRINT('Available models in %s:' % models_path)
-        for f in normative_model_files:
-            logging.PRINT('\t- %s' % (os.path.basename(f)))
-        logging.PRINT("Eg: to load the 1st model, run `SOM.load_normative('%s')`" % (os.path.splitext(os.path.basename(normative_model_files[0]))[0]))
-
-
     def set_normative_model(self, model_name='Polynomial'):
         """
         Sets normative model based on model name (defaults to 'Polynomial') and a training set ID (defaults to dldirect_OASIS3).
@@ -447,7 +451,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         if hasattr(normative_models, model_name):
             self.normativeModel = getattr(normative_models, model_name)(self.measured_metrics, self.metric_names,
                                   self.covariate_values, self.covariate_names, self.dataset_id,
-                                  self.metric_proc_pipeline.proc_pipeline_name, self.cov2float, self.subject)
+                                  self.metric_proc_pipeline.proc_pipeline_name, self.metric_proc_pipeline.version, self.cov2float, self.subject)
         else:
             logging.ERROR('Model %s not available in scanometrics.normative_models' % model_name)
 
@@ -466,32 +470,46 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         with open(output_filename, 'wb') as fout:
             pickle.dump(self.normativeModel, fout, pickle.HIGHEST_PROTOCOL)
 
-    def load_normative_model(self, model_dataset_id):
+    def load_normative_model(self, model_filename):
         """
         Loads normative model from pkl file into SOM.normativeModel structure, and overwrites SOM processing pipeline
         and cov2float to match those in the normative model.
 
-        :param model_dataset_id: name of model to load. Can be one of the outputs of `list_normative_models()` without
-                                 pkl extension (the file should be in `scanometrics/resources/normative_models` folder).
-                                 Can also be the path to a pkl file (should contain the .pkl extension).
-        :type model_dataset_id: string
+        :param model_filename: filename of model to load. Can be one of the outputs of `list_normative_models()`.
+                               Can also be the path to a pkl file (should contain the .pkl extension).
+        :type model_filename: string
         """
-        if os.path.exists(model_dataset_id):
-            input_file = model_dataset_id
-        else:
-            input_file = os.path.join(os.path.dirname(__file__), 'resources', 'normative_models', model_dataset_id+'.pkl')
-            logging.PRINT("%s was not found to be an existing file, setting input_file to %s" % (model_dataset_id, input_file))
-        if os.path.exists(input_file):
-            with open(input_file, 'rb') as fin:
-                self.normativeModel = pickle.load(fin)
-            # Set current processing pipeline to the same used to train the normative dataset
-            self.set_proc_pipeline(self.normativeModel.proc_pipeline_id)
-            self.cov2float = self.normativeModel.cov2float.copy()
-        else:
-            logging.ERROR("Normative model file not found (%s). Please specify model_dataset_id without the '.pkl' at "
-                          "the end of the file. For a list of available normative models, you can execute the "
-                          "scanometrics.core.list_normative_models() function. You can also specify the whole path to a"
-                          " pkl file, including the extension." % input_file)
+        # if file exists locally, load it
+        if os.path.exists(model_filename):
+            logging.PRINT("%s found, loading it as normativeModel" % model_filename)
+            with open(model_filename, 'rb') as fin:
+                normative_model = pickle.load(fin)
+        else:  # Check if model_filename is in SOM normative models folder, or on Zenodo
+            # Retrieve Zenodo's and local normative models
+            normative_models = list_normative_models()
+            if model_filename in normative_models:
+                if os.path.exists(normative_models[model_filename]['local_file']):
+                    logging.PRINT("%s found in SOM normative models folder, loading it as normativeModel" % model_filename)
+                else:
+                    logging.PRINT("%s not found in SOM normative models folder, downloading it from Zenodo" % model_filename)
+                    download_file(normative_models[model_filename]['download_url'], normative_models[model_filename]['local_file'])
+                with open(normative_models[model_filename]['local_file'], 'rb') as fin:
+                    normative_model = pickle.load(fin)
+                if normative_model.proc_pipeline_version != normative_models[model_filename]['proc_pipeline_version']:
+                    logging.ERROR('Mismatch in processing pipeline versions between downloaded file and the one queries from Zenodo, aborting')
+            else:
+                logging.ERROR("%s not found locally, nor in SOM normative models folders, nor on Zenodo, aborting..." % model_filename)
+        self.normativeModel = normative_model
+        proc_pipeline_id, _, atlas = self.normativeModel.proc_pipeline_id.split("_")
+        logging.PRINT("\n\nAtlas set to %s" % atlas)
+        # Set current processing pipeline to the same used to train the normative dataset
+        self.set_proc_pipeline(proc_pipeline_id, atlas)  # atlas retrieved from last piece of self.normativeModel.proc_pipeline_id
+        if self.metric_proc_pipeline.version != self.normativeModel.proc_pipeline_version:
+            logging.WARNING("Processing pipeline in %s is %s but version installed on the system is %s. We recommend to process data with the same software version, please install version %s on your system before processing any MRIs on this system." % (model_filename, self.normativeModel.proc_pipeline_version, self.metric_proc_pipeline.version, self.normativeModel.proc_pipeline_version))
+            self.metric_proc_pipeline.update_version(self.normativeModel.proc_pipeline_version, atlas)
+            logging.WARNING("Processing version set to %s to ensure compatibility. Make sure the derivatives folder has a subfolder named '%s' before loading metrics." % (self.metric_proc_pipeline.version, self.metric_proc_pipeline.subjects_dir))
+
+        self.cov2float = self.normativeModel.cov2float.copy()
         if self.normativeModel.som_version != __version__:
             logging.WARNING("SOM version used for training of %s model was %s, but local version of ScanOMetrics is %s."
                             "You might want to review changes in ScanOMetrics to check for discrepancies in processing"
@@ -567,7 +585,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         """
         Evaluation method to assess whether a new scan significantly differs from normative ranges. Loops through all
         available sessions and scans available in self.subject[subject_id].
-        
+
         :param subject_id: ID of the participant to evaluate.
         :type subject_id: string
         :param matching_covariates: array of covariate names to filter set of normative controls to evaluate against.
@@ -593,8 +611,9 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         # This case-scenario doesn't affect the evaluate_singleSubject_allSes() function (this current function here) as
         # matching rows are selected here and subject can be discarded.
 
-        normModel_matching_cols = np.array([i for i in range(len(self.normativeModel.covariate_names)) if
-                                            self.normativeModel.covariate_names[i] in matching_covariates])
+        # set to order both subject and normativeModel matching covariate columns to match
+        normModel_matching_cols = np.array([self.normativeModel.covariate_names.index(matching_name) for matching_name in matching_covariates])
+        self_matching_cols = np.array([self.covariate_names.index(matching_name) for matching_name in matching_covariates])
 
         # Tricky thing to do here: would be good to check if subject_id is in normativeModel.subject, as training model
         # might have been fit with a dataset that contains the subject (eg the subject came back for a scan and the user
@@ -659,13 +678,13 @@ with 'pip install -U .'""" % metric_proc_pipeline)
 
             # Compute subject residuals and residuals of matching subjects in the normativeModel
             matching_rows = []  # use list with append to add matches foreach session, and reduce with unique after
-            predicted_values = self.normativeModel.predict_values(subj_covariate_values)
+            predicted_values = self.normativeModel.predict_values(subj_covariate_values[:, self.covariate_names.index('age')])
             i_sesAcq = 0
             for session_id in self.subject[subject_id].keys():
                 for acq_id in self.subject[subject_id][session_id].keys():
                     # Extract matching subjSesAcq row indexes from normativeModel covariate_values
                     session_matches = np.where((self.normativeModel.covariate_values[:, normModel_matching_cols] ==
-                                                   subj_covariate_values[i_sesAcq, normModel_matching_cols]).all(axis=1))[0]
+                                                   subj_covariate_values[i_sesAcq, self_matching_cols]).all(axis=1))[0]
                     output[k]['residuals'][i_sesAcq, :] = subj_measured_metrics[k][i_sesAcq, col_idxs_self] - \
                                                           predicted_values[k][i_sesAcq, col_idxs_normativeModel]
                     matching_residuals = self.normativeModel.fit_outputs[k]['residuals'][session_matches, :][:, col_idxs_normativeModel].copy()
@@ -752,7 +771,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
 
                         # Find scans in normative model that match session
                         session_matches = np.where((self.normativeModel.covariate_values[:, normModel_matching_cols] ==
-                                                    subj_covariate_values[i_sesAcq, normModel_matching_cols]).all(axis=1))[0]
+                                                    subj_covariate_values[i_sesAcq, self_matching_cols]).all(axis=1))[0]
                         matching_rows.append(session_matches)
                         for i_metric in range(len(col_idxs_self)):
                             # NB: where to save plots ? Should be in bids/derivatives/scanometrics/<model_dataset_id>/
@@ -936,13 +955,380 @@ with 'pip install -U .'""" % metric_proc_pipeline)
                                     dpi=300)
                         plt.close()
 
-        return output, pID
+        return subj_covariate_values, normModel_matching_cols, subj_measured_metrics, output, pID
+
+    def plot_single_metric(self, subject_id, selected_metric, selected_session, selected_acquisition, output,
+                           matching_covariates, pid, alpha_uncorr=0.01):
+        """
+        Plot the selected metric for the given subject, session, and acquisition, ensuring that both hemispheres are plotted together if available, and symmetry index in the middle.
+
+        Parameters:
+        subject_id (str): The ID of the subject.
+        selected_metric (str): The metric to be plotted (eg aparc_lh_entorhinal_thickness).
+        selected_session (str): The session of the subject.
+        selected_acquisition (str): The acquisition label.
+        output (dict): The output data containing metric names and deviation statistics.
+        subj_covariate_values (ndarray): Covariate values for the subject.
+        normModel_matching_cols (list): Columns for matching the normative model.
+        subj_measured_metrics (ndarray): Measured metrics for the subject.
+        pid (int): FDR threshold.
+        alpha_uncorr (float, optional): Uncorrected alpha level. Default is 0.01.
+
+        Returns:
+        Figure: A matplotlib figure containing the plot.
+        """
+        plt.close("all")
+        plt.style.use('classic')
+
+        # Determine which data set to use based on the metric type
+        k = 'norm'
+
+        normModel_matching_cols = np.array([self.normativeModel.covariate_names.index(matching_name) for matching_name in matching_covariates])
+        self_matching_cols = np.array([self.covariate_names.index(matching_name) for matching_name in matching_covariates])
+
+        if selected_metric not in self.metric_names:
+            return
+
+        opposite_metric = None
+        symmetry_metric = None
+
+        # Determine the opposite metric for the other hemisphere
+        if 'lh' in selected_metric:
+            opposite_metric = selected_metric.replace('lh', 'rh')
+            symmetry_metric = selected_metric.replace('lh', 'symmetryIndex')
+        elif 'rh' in selected_metric:
+            opposite_metric = selected_metric.replace('rh', 'lh').replace('entolhinal', 'entorhinal')
+            symmetry_metric = selected_metric.replace('rh', 'symmetryIndex').replace('entolhinal', 'entorhinal')
+        elif 'Left' in selected_metric:
+            opposite_metric = selected_metric.replace('Left', 'Right')
+            symmetry_metric = selected_metric.replace('Left', 'symmetryIndex')
+        elif 'Right' in selected_metric:
+            opposite_metric = selected_metric.replace('Right', 'Left')
+            symmetry_metric = selected_metric.replace('Right', 'symmetryIndex')
+
+        if (opposite_metric and opposite_metric not in self.metric_names) or (symmetry_metric and symmetry_metric not in self.metric_names):
+            opposite_metric = None
+            symmetry_metric = None
+
+        # find index of metric in normativeModel metric_names
+        col_idx_normativeModel = self.normativeModel.metric_names.index(selected_metric)
+        # Find index of metric in self.metric_names
+        col_idx_self = self.metric_names.index(selected_metric)
+        # Find index of metric in output
+        col_idx_output = output[k]["metric_names"].index(selected_metric)
+        # Extract age of subject of interest
+        subj_covariate_values = self.covariate_values[self.get_subjSesAcq_row(subject_id, selected_session, selected_acquisition), :]
+        subj_ages = subj_covariate_values[self.covariate_names.index('age')]
+
+        col_idx_normativeModel_opposite = None
+        col_idx_self_opposite = None
+        col_idx_output_opposite = None
+        sym_idx_normativeModel = None
+        sym_idx_self = None
+        sym_idx_output = None
+
+        if opposite_metric:
+            col_idx_normativeModel_opposite = self.normativeModel.metric_names.index(opposite_metric)
+            col_idx_self_opposite = self.metric_names.index(opposite_metric)
+            col_idx_output_opposite = output[k]["metric_names"].index(opposite_metric)
+            sym_idx_normativeModel = self.normativeModel.metric_names.index(symmetry_metric)
+            sym_idx_self = self.metric_names.index(symmetry_metric)
+            sym_idx_output = output['orig']["metric_names"].index(symmetry_metric)
+
+        if selected_session not in self.subject[subject_id] or selected_acquisition not in self.subject[subject_id][
+            selected_session]:
+            logging.PRINT(
+                f"Session {selected_session} or acquisition {selected_acquisition} not found for subject {subject_id}.")
+            return
+
+        # Extract subjSesAcq value
+        subj_measured_metric = self.measured_metrics[k][self.get_subjSesAcq_row(subject_id, selected_session, selected_acquisition), col_idx_self]
+
+        # Check if the metric has a side indication
+        has_side = any(side in selected_metric for side in ['lh_', 'rh_', 'Left-', 'Right-']) or 'CortexVol' in selected_metric
+
+        fig, ax = plt.subplots(nrows=1, ncols=3 if opposite_metric and has_side else 1,
+                               figsize=(30 if opposite_metric and has_side else 10, 5))
+
+        # Ensure 'Left' or 'lh' is on the left and 'Right' or 'rh' is on the right
+        if has_side and opposite_metric and ('Right-' in selected_metric or 'rh' in selected_metric):
+            ax = ax[::-1]  # Reverse the order of the axes
+
+        run_idx = np.argwhere(self.get_subj_rows(subject_id) == self.get_subjSesAcq_row(subject_id, selected_session, selected_acquisition))[:, 0]
+        logging.PRINT("Subject %s has %d scans (selected scan is scan number %d" % (subject_id, len(self.get_subj_rows(subject_id)), run_idx))
+        for scan_id in [self.get_subjSesAcq_array()[i] for i in self.get_subj_rows(subject_id)]:
+            logging.PRINT("    - %s" % scan_id)
+
+        try:
+            # Find matching and non-matching sessions
+            session_matches = np.where((self.normativeModel.covariate_values[:, normModel_matching_cols] == subj_covariate_values[self_matching_cols]).all(axis=1))[0]
+            bad = np.argwhere(self.normativeModel.outliers[k][:, col_idx_normativeModel] == 1)
+            good = np.argwhere(self.normativeModel.outliers[k][:, col_idx_normativeModel] == 0)
+            match_bad = np.intersect1d(session_matches, bad)
+            match_good = np.intersect1d(session_matches, good)
+            nonmatch_bad = np.intersect1d(
+                np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches), bad)
+            nonmatch_good = np.intersect1d(
+                np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches), good)
+
+            normModel_age = self.normativeModel.covariate_values[:,
+                            self.normativeModel.covariate_names.index('age')].copy()
+
+            # Plot for the selected metric
+            ax1 = ax if not (opposite_metric and has_side) else ax[0]
+            ax1.plot(self.normativeModel.age_vec,
+                     self.normativeModel.fit_outputs[k]['fit_ave'][:, col_idx_normativeModel], 'k')
+            ax1.plot(normModel_age[match_good],
+                     self.normativeModel.measured_metrics[k][match_good, col_idx_normativeModel], 'ko',
+                     markersize=6, markerfacecolor='none')
+            ax1.plot(normModel_age[match_bad],
+                     self.normativeModel.measured_metrics[k][match_bad, col_idx_normativeModel], 'kx',
+                     markersize=6)
+            ax1.plot(normModel_age[nonmatch_good],
+                     self.normativeModel.measured_metrics[k][nonmatch_good, col_idx_normativeModel], 'ko',
+                     markersize=3, markerfacecolor='none', alpha=0.3)
+            ax1.plot(normModel_age[nonmatch_bad],
+                     self.normativeModel.measured_metrics[k][nonmatch_bad, col_idx_normativeModel], 'kx',
+                     markersize=3, alpha=0.3)
+            ax1.scatter(subj_ages, subj_measured_metric, s=50,
+                        facecolors='b', edgecolors='b')
+            ax1.errorbar(subj_ages, subj_measured_metric,
+                         yerr=self.normativeModel.uncertainty[k][col_idx_normativeModel], ecolor='b',
+                         ls='None')
+
+            pval = output[k]['devtn_pvals'][run_idx, col_idx_output]
+            logging.PRINT(f"p-value: {pval}, pid: {pid}, alpha_uncorr: {alpha_uncorr}")
+            if pval < pid:
+                ax1.set_facecolor([1, 0.5, 0.5])
+                ax1.set_alpha(0.5)
+            elif pval < alpha_uncorr:
+                ax1.set_facecolor('yellow')
+                ax1.set_alpha(0.5)
+
+            ax1.grid(visible=True, linewidth=0.5, alpha=0.5)
+            ax1.set_xlabel('Age (years)')
+            ax1.set_ylabel(self.metric_names[col_idx_self])
+            ax1.set_title(f'Session: {selected_session}, Acquisition: {selected_acquisition}')
+            if 'symmetryIndex' in self.metric_names[col_idx_self]:
+                ax1.set_ylim((-1, 1))
+
+            ylim = ax1.get_ylim()
+            yrange = ylim[1] - ylim[0]
+            xlim = ax1.get_xlim()
+            xtext = xlim[0] + 0.05 * (xlim[1] - xlim[0])
+            ax1.text(xtext, ylim[1] + 0.10 * yrange,
+                     r'%s=%1.2f$\pm$%1.2f%s' % (self.metric_plotting_info['type'][col_idx_self],
+                                                subj_measured_metric,
+                                                self.normativeModel.uncertainty[k][col_idx_normativeModel],
+                                                self.metric_plotting_info['units'][col_idx_self]))
+            closest_agevec = np.argmin(np.abs(self.normativeModel.age_vec - subj_ages))
+            ax1.text(xtext, ylim[1] + 0.05 * yrange, r'Norm=%1.2f%s, CI=[%1.2f-%1.2f]' % (
+                self.normativeModel.fit_outputs[k]['fit_ave'][closest_agevec, col_idx_normativeModel],
+                self.metric_plotting_info['units'][col_idx_self],
+                self.normativeModel.fit_outputs[k]['fit_sml'][closest_agevec, col_idx_normativeModel],
+                self.normativeModel.fit_outputs[k]['fit_lrg'][closest_agevec, col_idx_normativeModel]))
+            ax1.text(xtext, ylim[0] - 0.01 * yrange,
+                     r'z$_{dev}$=%1.3f, p$_{dev}$=%1.3f' % (
+                         output[k]['devtn_stats'][run_idx, col_idx_output],
+                         output[k]['devtn_pvals'][run_idx, col_idx_output]))
+            ax1.text(xtext, ylim[0] - 0.10 * yrange,
+                     r'Odds=%1.3f, outlier_frac=%1.3f, P(art.)=%1.3f' % (
+                         self.normativeModel.stats[k]['odds'][col_idx_normativeModel],
+                         self.normativeModel.stats[k]['fout'][col_idx_normativeModel],
+                         self.normativeModel.stats[k]['part'][col_idx_normativeModel]))
+            ax1.set_ylim(ylim[0] - 0.15 * yrange, ylim[1] + 0.15 * yrange)
+
+            # Plot for the opposite hemisphere and symmetry index if available
+            if opposite_metric and has_side:
+                subj_opposite_metric = self.measured_metrics[k][self.get_subjSesAcq_row(subject_id, selected_session, selected_acquisition), col_idx_self_opposite]
+                subj_sym_metric = self.measured_metrics['orig'][self.get_subjSesAcq_row(subject_id, selected_session, selected_acquisition), sym_idx_self]
+
+                ax2 = ax[1]
+                ax3 = ax[2]
+
+                bad_sym = np.argwhere(self.normativeModel.outliers['orig'][:, sym_idx_normativeModel] == 1)
+                good_sym = np.argwhere(self.normativeModel.outliers['orig'][:, sym_idx_normativeModel] == 0)
+                match_bad_sym = np.intersect1d(session_matches, bad_sym)
+                match_good_sym = np.intersect1d(session_matches, good_sym)
+                nonmatch_bad_sym = np.intersect1d(
+                    np.delete(np.arange(self.normativeModel.outliers['orig'].shape[0]), session_matches),
+                    bad_sym)
+                nonmatch_good_sym = np.intersect1d(
+                    np.delete(np.arange(self.normativeModel.outliers['orig'].shape[0]), session_matches),
+                    good_sym)
+
+                # Plot symmetry index
+                ax2.plot(self.normativeModel.age_vec,
+                         self.normativeModel.fit_outputs['orig']['fit_ave'][:, sym_idx_normativeModel], 'k')
+                ax2.plot(normModel_age[match_good_sym],
+                         self.normativeModel.measured_metrics['orig'][
+                             match_good_sym, sym_idx_normativeModel], 'ko',
+                         markersize=6, markerfacecolor='none')
+                ax2.plot(normModel_age[match_bad_sym],
+                         self.normativeModel.measured_metrics['orig'][
+                             match_bad_sym, sym_idx_normativeModel], 'kx',
+                         markersize=6)
+                ax2.plot(normModel_age[nonmatch_good_sym],
+                         self.normativeModel.measured_metrics['orig'][
+                             nonmatch_good_sym, sym_idx_normativeModel], 'ko',
+                         markersize=3, markerfacecolor='none', alpha=0.3)
+                ax2.plot(normModel_age[nonmatch_bad_sym],
+                         self.normativeModel.measured_metrics['orig'][
+                             nonmatch_bad_sym, sym_idx_normativeModel], 'kx',
+                         markersize=3, alpha=0.3)
+
+                ax2.scatter(subj_ages, subj_sym_metric, s=50,
+                            facecolors='b', edgecolors='b')
+                ax2.errorbar(subj_ages, subj_sym_metric,
+                             yerr=self.normativeModel.uncertainty['orig'][sym_idx_normativeModel],
+                             ecolor='b',
+                             ls='None')
+
+                pval = output['orig']['devtn_pvals'][run_idx, sym_idx_output]
+                logging.PRINT(f"Symmetry index - p-value: {pval}, pid: {pid}, alpha_uncorr: {alpha_uncorr}")
+                if pval < pid:
+                    ax2.set_facecolor([1, 0.5, 0.5])
+                    ax2.set_alpha(0.5)
+                elif pval < alpha_uncorr:
+                    ax2.set_facecolor('yellow')
+                    ax2.set_alpha(0.5)
+
+                ax2.grid(visible=True, linewidth=0.5, alpha=0.5)
+                ax2.set_xlabel('Age (years)')
+                ax2.set_ylabel(self.metric_names[sym_idx_self])
+
+                ylim = [-1, 1]
+                yrange = ylim[1] - ylim[0]
+                xlim = ax2.get_xlim()
+                xtext = xlim[0] + 0.05 * (xlim[1] - xlim[0])
+
+                ax2.text(xtext, ylim[1] + 0.10 * yrange,
+                         r'%s=%1.2f$\pm$%1.2f%s' % (self.metric_plotting_info['type'][sym_idx_self],
+                                                    subj_sym_metric,
+                                                    self.normativeModel.uncertainty['orig'][sym_idx_normativeModel],
+                                                    self.metric_plotting_info['units'][sym_idx_self]))
+
+                closest_agevec = np.argmin(np.abs(self.normativeModel.age_vec - subj_ages))
+                ax2.text(xtext, ylim[1] + 0.05 * yrange, r'Norm=%1.2f%s, CI=[%1.2f-%1.2f]' % (
+                    self.normativeModel.fit_outputs['orig']['fit_ave'][closest_agevec, sym_idx_normativeModel],
+                    self.metric_plotting_info['units'][sym_idx_self],
+                    self.normativeModel.fit_outputs['orig']['fit_sml'][closest_agevec, sym_idx_normativeModel],
+                    self.normativeModel.fit_outputs['orig']['fit_lrg'][closest_agevec, sym_idx_normativeModel]))
+
+                ax2.text(xtext, ylim[0] - 0.01 * yrange,
+                         r'z$_{dev}$=%1.3f, p$_{dev}$=%1.3f' % (
+                             output['orig']['devtn_stats'][run_idx, sym_idx_output],
+                             output['orig']['devtn_pvals'][run_idx, sym_idx_output]))
+
+                ax2.text(xtext, ylim[0] - 0.10 * yrange,
+                         r'Odds=%1.3f, outlier_frac=%1.3f, P(art.)=%1.3f' % (
+                             self.normativeModel.stats['orig']['odds'][sym_idx_normativeModel],
+                             self.normativeModel.stats['orig']['fout'][sym_idx_normativeModel],
+                             self.normativeModel.stats['orig']['part'][sym_idx_normativeModel]))
+
+                ax2.set_ylim(ylim[0] - 0.15 * yrange, ylim[1] + 0.15 * yrange)
+
+                # Plot contralateral pointcloud
+                bad_opposite = np.argwhere(self.normativeModel.outliers[k][:, col_idx_normativeModel_opposite] == 1)
+                good_opposite = np.argwhere(self.normativeModel.outliers[k][:, col_idx_normativeModel_opposite] == 0)
+                match_bad_opposite = np.intersect1d(session_matches, bad_opposite)
+                match_good_opposite = np.intersect1d(session_matches, good_opposite)
+                nonmatch_bad_opposite = np.intersect1d(
+                    np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches),
+                    bad_opposite)
+                nonmatch_good_opposite = np.intersect1d(
+                    np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches),
+                    good_opposite)
+
+                ax3.plot(self.normativeModel.age_vec,
+                         self.normativeModel.fit_outputs[k]['fit_ave'][:, col_idx_normativeModel_opposite], 'k')
+                ax3.plot(normModel_age[match_good_opposite],
+                         self.normativeModel.measured_metrics[k][
+                             match_good_opposite, col_idx_normativeModel_opposite], 'ko',
+                         markersize=6, markerfacecolor='none')
+                ax3.plot(normModel_age[match_bad_opposite],
+                         self.normativeModel.measured_metrics[k][
+                             match_bad_opposite, col_idx_normativeModel_opposite], 'kx',
+                         markersize=6)
+                ax3.plot(normModel_age[nonmatch_good_opposite],
+                         self.normativeModel.measured_metrics[k][
+                             nonmatch_good_opposite, col_idx_normativeModel_opposite], 'ko',
+                         markersize=3, markerfacecolor='none', alpha=0.3)
+                ax3.plot(normModel_age[nonmatch_bad_opposite],
+                         self.normativeModel.measured_metrics[k][
+                             nonmatch_bad_opposite, col_idx_normativeModel_opposite], 'kx',
+                         markersize=3, alpha=0.3)
+
+                ax3.scatter(subj_ages, subj_opposite_metric, s=50,
+                            facecolors='b', edgecolors='b')
+                ax3.errorbar(subj_ages, subj_opposite_metric,
+                             yerr=self.normativeModel.uncertainty[k][col_idx_normativeModel_opposite],
+                             ecolor='b',
+                             ls='None')
+
+                pval_opposite = output[k]['devtn_pvals'][run_idx, col_idx_output_opposite]
+                logging.PRINT(f"Opposite hemisphere - p-value: {pval_opposite}, pid: {pid}, alpha_uncorr: {alpha_uncorr}")
+                if pval_opposite < pid:
+                    ax3.set_facecolor([1, 0.5, 0.5])
+                    ax3.set_alpha(0.5)
+                elif pval_opposite < alpha_uncorr:
+                    ax3.set_facecolor('yellow')
+                    ax3.set_alpha(0.5)
+
+                ax3.grid(visible=True, linewidth=0.5, alpha=0.5)
+                ax3.set_xlabel('Age (years)')
+                ax3.set_ylabel(self.metric_names[col_idx_self_opposite])
+                ax3.set_title(f'Session: {selected_session}, Acquisition: {selected_acquisition} (Right Hemisphere)')
+
+                ylim = ax3.get_ylim()
+                yrange = ylim[1] - ylim[0]
+                xlim = ax3.get_xlim()
+                xtext = xlim[0] + 0.05 * (xlim[1] - xlim[0])
+
+                ax3.text(xtext, ylim[1] + 0.10 * yrange,
+                         r'%s=%1.2f$\pm$%1.2f%s' % (self.metric_plotting_info['type'][col_idx_self_opposite],
+                                                    subj_opposite_metric,
+                                                    self.normativeModel.uncertainty[k][
+                                                        col_idx_normativeModel_opposite],
+                                                    self.metric_plotting_info['units'][col_idx_self_opposite]))
+
+                closest_agevec = np.argmin(np.abs(self.normativeModel.age_vec - subj_ages))
+                ax3.text(xtext, ylim[1] + 0.05 * yrange, r'Norm=%1.2f%s, CI=[%1.2f-%1.2f]' % (
+                    self.normativeModel.fit_outputs[k]['fit_ave'][closest_agevec, col_idx_normativeModel_opposite],
+                    self.metric_plotting_info['units'][col_idx_self_opposite],
+                    self.normativeModel.fit_outputs[k]['fit_sml'][closest_agevec, col_idx_normativeModel_opposite],
+                    self.normativeModel.fit_outputs[k]['fit_lrg'][closest_agevec, col_idx_normativeModel_opposite]))
+
+                ax3.text(xtext, ylim[0] - 0.01 * yrange,
+                         r'z$_{dev}$=%1.3f, p$_{dev}$=%1.3f' % (
+                             output[k]['devtn_stats'][run_idx, col_idx_output_opposite],
+                             output[k]['devtn_pvals'][run_idx, col_idx_output_opposite]))
+
+                ax3.text(xtext, ylim[0] - 0.10 * yrange,
+                         r'Odds=%1.3f, outlier_frac=%1.3f, P(art.)=%1.3f' % (
+                             self.normativeModel.stats[k]['odds'][col_idx_normativeModel_opposite],
+                             self.normativeModel.stats[k]['fout'][col_idx_normativeModel_opposite],
+                             self.normativeModel.stats[k]['part'][col_idx_normativeModel_opposite]))
+
+                ax3.set_ylim(ylim[0] - 0.15 * yrange, ylim[1] + 0.15 * yrange)
+
+        except IndexError as e:
+            error_message = f"IndexError for subject_id {subject_id}, session_id {selected_session}, acq_id {selected_acquisition}, metric {selected_metric}: {e}"
+            print(error_message)
+            QMessageBox.critical(None, "IndexError", error_message)
+
+        except Exception as e:
+            error_message = f"Unexpected error for subject_id {subject_id}, session_id {selected_session}, acq_id {selected_acquisition}, metric {selected_metric}: {e}"
+            print(error_message)
+            QMessageBox.critical(None, "Unexpected Error", error_message)
+
+        return fig
 
     def test_group_differences(self, matching_covariates, metric_names=None, normalizations=None, group_label=None, group_covariate=None):
         """
         Perform statistical test (Student t-test) between group residuals and residuals of matching normative scans.
         Consider different group options:
-        
+
             * Loaded subjects against normative dataset
             * Groups inside loaded subjects, labeled by a variable, intended to be a single label to mask out subjects
               before testing. This function allows loading a complete dataset, and test a certain group against a normative
@@ -952,7 +1338,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         :param matching_covariates: list of covariate names to use to filter matching scans in the normative dataset
         :type matching_covariates: list
         :param metric_names: list of metric names to test for differences between groups. Defaults to None, which results
-                             in testing all metrics in self.normativeModel.metric_names.
+                             in testing all metrics intersecting self.metric_names and self.normativeModel.metric_names.
         :type metric_names: list of strings
         :param normalizations: list of normalization types to analyse. Defaults to None, which results into analysing
                                both 'orig' and 'norm' datasets in self.measured_metrics.
@@ -964,8 +1350,8 @@ with 'pip install -U .'""" % metric_proc_pipeline)
                                 to be tested against the normative dataset.
         :type group_covariate: array of ints
         """
-        normModel_matching_cols = np.array([i for i in range(len(self.normativeModel.covariate_names)) if
-                                            self.normativeModel.covariate_names[i] in matching_covariates])
+        normModel_matching_cols = np.array( [self.normativeModel.covariate_names.index(matching_name) for matching_name in matching_covariates])
+        self_matching_cols = np.array( [self.covariate_names.index(matching_name) for matching_name in matching_covariates])
         if metric_names is None:
             metric_names = self.metric_names.copy()
         output = {}
@@ -981,25 +1367,26 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         for i, covariate_name in enumerate(self.normativeModel.covariate_names):
             subj_covariate_values[:, i] = self.covariate_values[subj_rows, :][:, self.covariate_names.index(covariate_name)]
         # Predict values for current subjects
-        predicted_values = self.normativeModel.predict_values(subj_covariate_values)
+        predicted_values = self.normativeModel.predict_values(self.covariate_values[:, self.covariate_names['age']])
         for k in normalizations:
             # Get column matching between self.measured_metrics and self.normativeModel.measured_metrics, using metric_names
-            # Intended to be used with arrays coming from new measurement, to match with ordering in normativeModel
-            # eg subj_measured_metrics[:, normModel_cols[m]] - self.normativeModel.uncertainty[m]
-            # All arrays intended to analyse the current subject should have same number of columns as normativeModel
-            normModel_cols = np.full(self.normativeModel.measured_metrics[k].shape[1], np.nan)
-            for m in range(self.normativeModel.measured_metrics[k].shape[1]):
-                if self.normativeModel.metric_names[m] in metric_names:
-                    normModel_cols[m] = metric_names.index(self.normativeModel.metric_names[m])
+            col_idxs_normativeModel = []
+            col_idxs_self = []
+            metric_names_union = [metric_name for metric_name in metric_names[:self.measured_metrics[k].shape[1]] if
+                                  metric_name in self.normativeModel.metric_names[
+                                                 :self.normativeModel.measured_metrics[k].shape[1]]]
+            for metric_name in metric_names_union:
+                col_idxs_normativeModel.append(self.normativeModel.metric_names.index(metric_name))
+                col_idxs_self.append(metric_names.index(metric_name))
             # Allocate output
             output[k] = {}
-            output[k]['gp_residuals'] = np.full((len(subj_rows), len(normModel_cols)), np.nan)
-            output[k]['gp-vs-gp_dfs'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['gp-vs-gp_ts'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['gp-vs-gp_pvals'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['gp-vs-gp_logps'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['gp-vs-gp_cohen-d'] = np.full((len(normModel_cols)), np.nan)
-            output[k]['metric_names'] = [metric_names[int(m)] for m in normModel_cols if not np.isnan(m)]
+            output[k]['gp_residuals'] = np.full((len(subj_rows), len(col_idxs_self)), np.nan)
+            output[k]['gp-vs-gp_dfs'] = np.full((len(col_idxs_self)), np.nan)
+            output[k]['gp-vs-gp_ts'] = np.full((len(col_idxs_self)), np.nan)
+            output[k]['gp-vs-gp_pvals'] = np.full((len(col_idxs_self)), np.nan)
+            output[k]['gp-vs-gp_logps'] = np.full((len(col_idxs_self)), np.nan)
+            output[k]['gp-vs-gp_cohen-d'] = np.full((len(col_idxs_self)), np.nan)
+            output[k]['metric_names'] = [metric_names[i] for i in col_idxs_self]
             # Extract scan metrics
             subj_measured_metrics = self.measured_metrics[k][subj_rows, :]
             if len(subj_measured_metrics.shape) == 1:
@@ -1010,26 +1397,26 @@ with 'pip install -U .'""" % metric_proc_pipeline)
             for i_scan in range(len(subj_rows)):
                 # Extract matching subjSesAcq row indexes from normativeModel covariate_values
                 scan_matches = np.where((self.normativeModel.covariate_values[:, normModel_matching_cols] ==
-                                               subj_covariate_values[i_scan, normModel_matching_cols]).all(axis=1))[0]
+                                               subj_covariate_values[i_scan, self_matching_cols]).all(axis=1))[0]
                 matching_rows.append(scan_matches)
             matching_rows = np.unique(np.hstack(matching_rows))  # Group all scan matches and remove duplicates
-            matching_residuals = self.normativeModel.fit_outputs[k]['residuals'][matching_rows, :].copy()
-            outliers = self.normativeModel.outliers[k][matching_rows, :].copy()
+            matching_residuals = self.normativeModel.fit_outputs[k]['residuals'][matching_rows, :][:, col_idxs_normativeModel].copy()
+            outliers = self.normativeModel.outliers[k][matching_rows, :][:, col_idxs_normativeModel].copy()
             matching_residuals[outliers] = np.nan  # sets outliers to nan, so matching rows still includes outlier subjects, but not taken into account when using nan_policy='omit'
             if len(matching_residuals.shape) == 1:
                 matching_residuals = matching_residuals[None, :]  # Make the array 2D to average over 1st dimension later
             # Test for statistical difference between group residuals and matching residuals
-            for m in np.argwhere(~np.isnan(normModel_cols))[:, 0]:
-                output[k]['gp_residuals'][:, m] = subj_measured_metrics[:, int(normModel_cols[m])] - predicted_values[k][:, m]
-                subj_noNans = output[k]['gp_residuals'][~np.isnan(output[k]['gp_residuals'][:, m]), m]
-                matching_noNans = matching_residuals[~np.isnan(matching_residuals[:, m]), m]
+            output[k]['gp_residuals'] = subj_measured_metrics[:, col_idxs_self] - predicted_values[k][:, col_idxs_normativeModel]
+            for i_metric in range(len(col_idxs_self)):
+                subj_noNans = output[k]['gp_residuals'][~np.isnan(output[k]['gp_residuals'][:, i_metric]), i_metric]
+                matching_noNans = matching_residuals[~np.isnan(matching_residuals[:, i_metric]), i_metric]
                 t, p = ttest_ind(subj_noNans, matching_noNans)
-                output[k]['gp-vs-gp_dfs'][m] = len(subj_noNans)+len(matching_noNans)-1
-                output[k]['gp-vs-gp_ts'][m] = t
-                output[k]['gp-vs-gp_pvals'][m] = p
-                output[k]['gp-vs-gp_logps'][m] = -np.sign(t) * np.log10(p)
+                output[k]['gp-vs-gp_dfs'][i_metric] = len(subj_noNans)+len(matching_noNans)-1
+                output[k]['gp-vs-gp_ts'][i_metric] = t
+                output[k]['gp-vs-gp_pvals'][i_metric] = p
+                output[k]['gp-vs-gp_logps'][i_metric] = -np.sign(t) * np.log10(p)
                 n1 = len(matching_noNans)
                 n2 = len(subj_noNans)
                 pooled_std = np.sqrt(((n1-1)*matching_noNans.std(ddof=1)**2+(n2-1)*subj_noNans.std(ddof=1)**2)/(n1+n2-2))
-                output[k]['gp-vs-gp_cohen-d'][m] = (np.nanmean(output[k]['gp_residuals'][:, m])-np.nanmean(matching_residuals[:, m]))/pooled_std  # d<0 == test_group < norm, d>0 == test_group > norm
+                output[k]['gp-vs-gp_cohen-d'][i_metric] = (np.nanmean(output[k]['gp_residuals'][:, i_metric])-np.nanmean(matching_residuals[:, i_metric]))/pooled_std  # d<0 == test_group < norm, d>0 == test_group > norm
         return output

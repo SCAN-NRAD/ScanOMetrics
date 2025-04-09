@@ -5,7 +5,9 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "scanometrics"
 authors = [{name = "Christian Rummel", email = "christian.rummel@insel.ch"},
-           {name = "David Romascano", email = "david.romascano@insel.ch"}]
+           {name = "David Romascano", email = "david.romascano@insel.ch"},
+           {name = "Dinan Brisson", email = "dinan.brisson@isen-ouest.yncrea.fr"},
+           {name = "Gabriel Lefevre", email = "gabriel.lefevre@isen-ouest.yncrea.fr"}]
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = [
@@ -18,9 +20,20 @@ dependencies = [
     "numpy>=1.22.3",
     "nibabel>=3.2",
     "scipy>=1.8.1",
-    "matplotlib>=3.5.2"
+    "matplotlib>=3.5.2",
+    "Sphinx>=5,<6",
+    "sphinx_rtd_theme==1.0.0",
+    "PyQt5~=5.15.10",
+    "vtk~=9.3.0",
+    "pandas~=2.2.2",
+    "plotly~=5.22.0",
+    "reportlab~=4.2.2",
+    "tqdm>=4.67.1"
 ]
 dynamic = ["version", "description"]
 
 [project.scripts]
 scanometrics = "scanometrics.scripts.scanometrics:main"
+scanometrics_gui = "scanometrics.scripts.scanometrics_gui:main"
+dicom2bids = "scanometrics.utils.dicom2bids:main"
+

@@ -4,3 +4,9 @@ scipy>=1.8.1
 matplotlib>=3.5.2
 Sphinx>=5,<6
 sphinx_rtd_theme==1.0.0
+PyQt5~=5.15.10
+vtk~=9.3.0
+pandas~=2.2.2
+plotly~=5.22.0
+reportlab~=4.2.2
+tqdm>=4.67.1
