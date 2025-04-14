@@ -105,7 +105,7 @@ class proc_pipeline:
     def update_version(self, version, atlas):
         """Added function to update version, used mainly when loading a model that was trained with another version, to update software specific variables as subjects dir for dldirect"""
         self.version = version
-        self.proc_pipeline_name = 'dldirect_v%s_%s' % (atlas, self.version.replace('.', '-'), atlas)
+        self.proc_pipeline_name = 'dldirect_v%s_%s' % (self.version.replace('.', '-'), atlas)
         self.subjects_dir = os.path.join(self.bids_database, 'derivatives', self.proc_pipeline_name)
 
     def get_atlas(self, atlas_name):
