@@ -31,18 +31,18 @@ Cited by
 
 ScanOMetrics has been used in the following studies:
 
->    Romascano D, Rebsamen  M, Radojewski P, Blattner T, McKinley R, Wiest R, Rummel C
->    Cortical thickness and grey-matter volume anomaly detection in individual MRI scans: Comparison of two methods.
->    NeuroImage: Clinical, 43, p.103624 (2024)
->    https://doi.org/10.1016/j.nicl.2024.103624
+>     Romascano D, Rebsamen  M, Radojewski P, Blattner T, McKinley R, Wiest R, Rummel C
+>     Cortical thickness and grey-matter volume anomaly detection in individual MRI scans: Comparison of two methods.
+>     NeuroImage: Clinical, 43, p.103624 (2024)
+>     https://doi.org/10.1016/j.nicl.2024.103624
 
->    Rebsamen M, Suter Y, Wiest R, Reyes M, Rummel C.
->    Brain morphometry estimation: From hours to seconds using deep learning.
->    Frontiers in neurology, 11:244 (2020)
->    https://doi.org/10.3390/brainsci13091270
+>     Rebsamen M, Suter Y, Wiest R, Reyes M, Rummel C.
+>     Brain morphometry estimation: From hours to seconds using deep learning.
+>     Frontiers in neurology, 11:244 (2020)
+>     https://doi.org/10.3390/brainsci13091270
 
->    Rummel C, Slavova N, Seiler A, Abela E, Hauf M, Burren Y, Weisstanner C, Vulliemoz S, Seeck M, Schindler K, Wiest R
->    Personalized structural image  analysis in patients with temporal lobe epilepsy.
->    Sci Rep 7, 10883 (2017).
->    https://doi.org/10.1038/s41598-017-10707-1
+>     Rummel C, Slavova N, Seiler A, Abela E, Hauf M, Burren Y, Weisstanner C, Vulliemoz S, Seeck M, Schindler K, Wiest R
+>     Personalized structural image  analysis in patients with temporal lobe epilepsy.
+>     Sci Rep 7, 10883 (2017).
+>     https://doi.org/10.1038/s41598-017-10707-1
 
