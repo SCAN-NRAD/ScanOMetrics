@@ -11,3 +11,4 @@ plotly~=5.22.0
 reportlab~=4.2.2
 tqdm>=4.67.1
 pydicom
+git+https://github.com/SCAN-NRAD/DL-DiReCT-V2.git@v1.0.3#egg=DL-DiReCT
