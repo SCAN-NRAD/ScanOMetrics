@@ -14,7 +14,7 @@ from typing import Optional
 from glob import glob
 import pickle
 
-__ZENODO_URL__ = 'https://zenodo.org/records/15178429'  # zenodos base url
+__ZENODO_URL__ = 'https://zenodo.org/api/records/15178429'  # zenodos base url
 proc_software_list = dir(scanometrics.processing)
 
 
