@@ -32,13 +32,8 @@ class SelectPKLFile(DropDownMenu):
         self.dropdown_menu.clear()
         self.dropdown_menu.addItem(self.default_msg)
         try:
-            if len(normative_model_ids) == 1:
-                self.dropdown_menu.addItem(normative_model_ids[0])
-                self.dropdown_menu.setCurrentText(normative_model_ids[0])
-                self.sgn.emit(normative_model_ids[0])
-            else:
-                for normative_model_id in normative_model_ids:
-                    self.dropdown_menu.addItem(normative_model_id)
+            for normative_model_id in normative_model_ids:
+                self.dropdown_menu.addItem(normative_model_id)
         except Exception as e:
             # If there's an error accessing the directory, display an error message
             QMessageBox.critical(self, "Error", f"Error while setting list of normative models: {e}")
