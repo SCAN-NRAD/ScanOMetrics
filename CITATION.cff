@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the following papers:"
+authors:
+  - family-names: "Rummel"
+    given-names: "Christian"
+  - family-names: "Aschwanden"
+    given-names: "Fabian"
+  - family-names: "McKinley"
+    given-names: "Richard"
+  - family-names: "Wagner"
+    given-names: "Franca"
+  - family-names: "Salmen"
+    given-names: "Anke"
+  - family-names: "Chan"
+    given-names: "Andrew"
+  - family-names: "Wiest"
+    given-names: "Roland"
+title: "A fully automated pipeline for normative atrophy in patients with neurodegenerative disease"
+doi: 10.3389/fneur.2017.00727 
+url: https://www.frontiersin.org/journals/neurology/articles/10.3389/fneur.2017.00727/full
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Rummel"
+      given-names: "Christian"
+    - family-names: "Aschwanden"
+      given-names: "Fabian"
+    - family-names: "McKinley"
+      given-names: "Richard"
+    - family-names: "Wagner"
+      given-names: "Franca"
+    - family-names: "Salmen"
+      given-names: "Anke"
+    - family-names: "Chan" 
+      given-names: "Andrew"
+    - family-names: "Wiest"
+      given-names: "Roland"
+  doi: "10.3389/fneur.2017.00727"
+  journal: "Frontiers in neurology"
+  month: 1
+  start: 727
+  title: "A fully automated pipeline for normative atrophy in patients with neurodegenerative disease"
+  volume: 8
+  year: 2018
+
