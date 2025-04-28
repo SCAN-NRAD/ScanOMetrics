@@ -467,6 +467,8 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         if output_filename is None:
             output_filename = os.path.join(os.path.dirname(__file__), 'resources',  'normative_models', self.normativeModel.model_dataset_id+'.pkl')
         # Save pickle file
+        if not os.path.exists(os.path.dirname(output_filename)):
+            os.makedirs(os.path.dirname(output_filename))
         with open(output_filename, 'wb') as fout:
             pickle.dump(self.normativeModel, fout, pickle.HIGHEST_PROTOCOL)
 
@@ -580,8 +582,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
     # RUN CORE FUNCTIONS #
     ######################
 
-    def evaluate_singleSubject_allSes(self, subject_id, matching_covariates, min_num_ctrl=5, alpha_uncorr=0.01, q_fdr=0.05,
-                                      create_html_report=True):
+    def evaluate_singleSubject_allSes(self, subject_id, matching_covariates, min_num_ctrl=5, alpha_uncorr=0.01, q_fdr=0.05):
         """
         Evaluation method to assess whether a new scan significantly differs from normative ranges. Loops through all
         available sessions and scans available in self.subject[subject_id].
@@ -596,8 +597,6 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         :type alpha_uncorr: float
         :param q_fdr: statistical significance level for fdr-corrected p-values.
         :type q_fdr: float
-        :param create_html_report: flag to activate/deactivate generation of html report with figures (time and memory consuming).
-        :type create_html_report: bool
         """
 
         # NB: there can be SOM instances with dissociated subjects between normativeModel/self datasets (most usual case
@@ -745,215 +744,6 @@ with 'pip install -U .'""" % metric_proc_pipeline)
 
         all_pvals = np.hstack(([output[k]['devtn_logps'].reshape(-1) for k in output.keys()]+[output[k]['trend_logps'] for k in output.keys()]))
         pID, _ = fdr(10 ** (-np.abs(all_pvals)), q_fdr)
-
-        if create_html_report:
-            for k in self.normativeModel.measured_metrics.keys():
-                col_idxs_normativeModel = []
-                col_idxs_self = []
-                metric_names_union = [metric_name for metric_name in self.metric_names[:self.measured_metrics[k].shape[1]]
-                                      if metric_name in self.normativeModel.metric_names[:self.normativeModel.measured_metrics[k].shape[1]]]
-                for metric_name in metric_names_union:
-                    col_idxs_normativeModel.append(self.normativeModel.metric_names.index(metric_name))
-                    col_idxs_self.append(self.metric_names.index(metric_name))
-                subj_ages = subj_covariate_values[:, self.covariate_names.index('age')]
-                matching_rows = []  # use list with append to add matches foreach session, and reduce with unique after
-                i_sesAcq = 0
-                for session_id in self.subject[subject_id].keys():
-                    for acq_id in self.subject[subject_id][session_id].keys():
-
-                        # Copy html template
-                        if create_html_report:
-                            html_output = os.path.join(self.bids_database, 'derivatives', 'scanometrics',
-                                                       self.normativeModel.model_dataset_id, subject_id, session_id, acq_id,
-                                                       'html')
-                            if not os.path.exists(html_output):
-                                copytree(os.path.join(os.path.dirname(__file__), 'resources', 'html_template'), html_output)
-
-                        # Find scans in normative model that match session
-                        session_matches = np.where((self.normativeModel.covariate_values[:, normModel_matching_cols] ==
-                                                    subj_covariate_values[i_sesAcq, self_matching_cols]).all(axis=1))[0]
-                        matching_rows.append(session_matches)
-                        for i_metric in range(len(col_idxs_self)):
-                            # NB: where to save plots ? Should be in bids/derivatives/scanometrics/<model_dataset_id>/
-                            # <subject_id>/<session_id>/html/figs'. Eg for LOOCV loop, the model_id remains the same
-                            # (eg Polynomial) and dataset_id is original dataset (eg CHFIRST) with '-LOOCV-001'
-                            # (-> dataset_model_id = 'polynomial_CHFIRST-LOOCV-001
-
-                            bad = np.argwhere(self.normativeModel.outliers[k][:, col_idxs_normativeModel[i_metric]] == 1)
-                            good = np.argwhere(self.normativeModel.outliers[k][:, col_idxs_normativeModel[i_metric]] == 0)
-                            match_bad = np.intersect1d(session_matches, bad)
-                            match_good = np.intersect1d(session_matches, good)
-                            nonmatch_bad = np.intersect1d(np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches), bad)
-                            nonmatch_good = np.intersect1d(np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), session_matches), good)
-
-                            normModel_age = self.normativeModel.covariate_values[:, self.normativeModel.covariate_names.index('age')].copy()
-                            fig = plt.figure()
-                            ax1 = fig.gca()
-                            ax1.plot(self.normativeModel.age_vec,
-                                     self.normativeModel.fit_outputs[k]['fit_ave'][:, col_idxs_normativeModel[i_metric]], 'k')
-                            # Commented out as normative dataset is large enough not to need CI boundaries
-                            # ax1.plot(self.normativeModel.age_vec,
-                            #          self.normativeModel.fit_outputs[k]['fit_lrg'][:, col_idxs_normativeModel[i_metric]], 'k-', alpha=0.3)
-                            # ax1.plot(self.normativeModel.age_vec,
-                            #          self.normativeModel.fit_outputs[k]['fit_sml'][:, col_idxs_normativeModel[i_metric]], 'k-', alpha=0.3)
-                            # Plot matching/nonmatching outliers and non-outliers points from normative dataset
-                            ax1.plot(normModel_age[match_good], self.normativeModel.measured_metrics[k][match_good, col_idxs_normativeModel[i_metric]], 'ko',
-                                     markersize=6, markerfacecolor='none')
-                            ax1.plot(normModel_age[match_bad], self.normativeModel.measured_metrics[k][match_bad, col_idxs_normativeModel[i_metric]], 'kx',
-                                     markersize=6)
-                            ax1.plot(normModel_age[nonmatch_good], self.normativeModel.measured_metrics[k][nonmatch_good, col_idxs_normativeModel[i_metric]],
-                                     'ko', markersize=3, markerfacecolor='none', alpha=0.3)
-                            ax1.plot(normModel_age[nonmatch_bad], self.normativeModel.measured_metrics[k][nonmatch_bad, col_idxs_normativeModel[i_metric]], 'kx',
-                                     markersize=3, alpha=0.3)
-                            # Plot subject of interest
-                            ax1.scatter(subj_ages[i_sesAcq], subj_measured_metrics[k][i_sesAcq, col_idxs_self[i_metric]], s=50, facecolors='b',
-                                        edgecolors='b')
-                            ax1.errorbar(subj_ages[i_sesAcq], subj_measured_metrics[k][i_sesAcq, col_idxs_self[i_metric]],
-                                         yerr=self.normativeModel.uncertainty[k][col_idxs_normativeModel[i_metric]], ecolor='b', ls='None')
-                            # Color background
-                            if not np.isnan(output[k]['devtn_pvals'][i_sesAcq, i_metric]) and output[k]['devtn_pvals'][i_sesAcq, i_metric] < pID:
-                                ax1.set_facecolor([1, 0.5, 0.5])
-                                ax1.set_alpha(0.5)
-                            elif not np.isnan(output[k]['devtn_pvals'][i_sesAcq, i_metric]) and output[k]['devtn_pvals'][i_sesAcq, i_metric] < alpha_uncorr:
-                                ax1.set_facecolor('yellow')
-                                ax1.set_alpha(0.5)
-                            # Arrange display
-                            ax1.grid(visible=True, linewidth=0.5, alpha=0.5)
-                            ax1.set_xlabel('Age (years)')
-                            ax1.set_ylabel(self.metric_names[col_idxs_self[i_metric]])
-                            if 'symmetryIndex' in self.metric_names[col_idxs_self[i_metric]]:
-                                ax1.set_ylim((-1, 1))
-                            # Add text information
-                            ylim = ax1.get_ylim()
-                            yrange = ylim[1] - ylim[0]
-                            xlim = ax1.get_xlim()
-                            xtext = xlim[0] + 0.05 * (xlim[1] - xlim[0])
-                            ax1.text(xtext, ylim[1] + 0.10 * yrange,
-                                     r'%s=%1.2f$\pm$%1.2f%s' % (self.metric_plotting_info['type'][col_idxs_self[i_metric]],
-                                                                subj_measured_metrics[k][i_sesAcq, col_idxs_self[i_metric]],
-                                                                self.normativeModel.uncertainty[k][col_idxs_normativeModel[i_metric]],
-                                                                self.metric_plotting_info['units'][col_idxs_self[i_metric]]))
-                            closest_agevec = np.argmin(np.abs(self.normativeModel.age_vec - subj_ages[i_sesAcq]))
-                            ax1.text(xtext, ylim[1] + 0.05 * yrange, r'Norm=%1.2f%s, CI=[%1.2f-%1.2f]' % (
-                              self.normativeModel.fit_outputs[k]['fit_ave'][closest_agevec, col_idxs_normativeModel[i_metric]],
-                              self.metric_plotting_info['units'][col_idxs_self[i_metric]],
-                              self.normativeModel.fit_outputs[k]['fit_sml'][closest_agevec, col_idxs_normativeModel[i_metric]],
-                              self.normativeModel.fit_outputs[k]['fit_lrg'][closest_agevec, col_idxs_normativeModel[i_metric]]))
-                            ax1.text(xtext, ylim[0] - 0.01 * yrange,
-                                     r'z$_{dev}$=%1.3f, p$_{dev}$=%1.3f' % (output[k]['devtn_stats'][i_sesAcq, i_metric],
-                                                                            output[k]['devtn_pvals'][i_sesAcq, i_metric]))
-
-                            ax1.text(xtext, ylim[0] - 0.10 * yrange,
-                                     r'Odds=%1.3f, outlier_frac=%1.3f, P(art.)=%1.3f' % (self.normativeModel.stats[k]['odds'][col_idxs_normativeModel[i_metric]],
-                                                                                         self.normativeModel.stats[k]['fout'][col_idxs_normativeModel[i_metric]],
-                                                                                         self.normativeModel.stats[k]['part'][col_idxs_normativeModel[i_metric]]))
-
-                            ax1.set_ylim(ylim[0] - 0.15 * yrange, ylim[1] + 0.15 * yrange)
-                            output_folder = os.path.join(html_output, 'figs')
-                            if not os.path.exists(output_folder):
-                                os.makedirs(output_folder)
-                            fig.savefig(os.path.join(output_folder, '%s_%s.jpeg' % (self.normativeModel.metric_names[col_idxs_normativeModel[i_metric]], k)),
-                                        dpi=300)
-                            plt.close()
-                        i_sesAcq += 1
-                if len(self.subject[subject_id]) > 1:
-                    # Create longitudinal report
-                    html_output = os.path.join(self.bids_database, 'derivatives', 'scanometrics',
-                                               self.normativeModel.model_dataset_id, subject_id, 'longitudinal_analysis',
-                                               'html')
-                    if not os.path.exists(html_output):
-                        copytree(os.path.join(os.path.dirname(__file__), 'resources', 'html_template'), html_output)
-                    # Group all sess matches and remove duplicates
-                    matching_rows = np.unique(np.hstack(matching_rows))
-                    for i_metric in range(len(col_idxs_self)):
-                        bad = np.argwhere(self.normativeModel.outliers[k][:, col_idxs_normativeModel[i_metric]] == 1)
-                        good = np.argwhere(self.normativeModel.outliers[k][:, col_idxs_normativeModel[i_metric]] == 0)
-                        match_bad = np.intersect1d(matching_rows, bad)
-                        match_good = np.intersect1d(matching_rows, good)
-                        nonmatch_bad = np.intersect1d(np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), matching_rows), bad)
-                        nonmatch_good = np.intersect1d(np.delete(np.arange(self.normativeModel.outliers[k].shape[0]), matching_rows), good)
-
-                        normModel_age = self.normativeModel.covariate_values[:, self.normativeModel.covariate_names.index('age')].copy()
-                        fig = plt.figure()
-                        ax1 = fig.gca()
-                        ax1.plot(self.normativeModel.age_vec,
-                                 self.normativeModel.fit_outputs[k]['fit_ave'][:, col_idxs_normativeModel[i_metric]], 'k')
-                        # Commented out as normative dataset is large enough not to need CI boundaries
-                        # ax1.plot(self.normativeModel.age_vec,
-                        #          self.normativeModel.fit_outputs[k]['fit_lrg'][:, col_idxs_normativeModel[i_metric]], 'k-', alpha=0.3)
-                        # ax1.plot(self.normativeModel.age_vec,
-                        #          self.normativeModel.fit_outputs[k]['fit_sml'][:, col_idxs_normativeModel[i_metric]], 'k-', alpha=0.3)
-                        # Plot matching/nonmatching outliers and non-outliers points from normative dataset
-                        ax1.plot(normModel_age[match_good], self.normativeModel.measured_metrics[k][match_good, col_idxs_normativeModel[i_metric]], 'ko',
-                                 markersize=6, markerfacecolor='none', alpha=0.5)
-                        ax1.plot(normModel_age[match_bad], self.normativeModel.measured_metrics[k][match_bad, col_idxs_normativeModel[i_metric]], 'kx',
-                                 markersize=6, alpha=0.5)
-                        ax1.plot(normModel_age[nonmatch_good], self.normativeModel.measured_metrics[k][nonmatch_good, col_idxs_normativeModel[i_metric]],
-                                 'ko', markersize=3, markerfacecolor='none', alpha=0.2)
-                        ax1.plot(normModel_age[nonmatch_bad], self.normativeModel.measured_metrics[k][nonmatch_bad, col_idxs_normativeModel[i_metric]],
-                                 'kx',
-                                 markersize=3, alpha=0.2)
-                        # Plot subject of interest
-                        ax1.scatter(subj_ages, subj_measured_metrics[k][:, col_idxs_self[i_metric]], s=50,
-                                    facecolors='b',
-                                    edgecolors='b')
-                        ax1.errorbar(subj_ages, subj_measured_metrics[k][:, col_idxs_self[i_metric]],
-                                     yerr=self.normativeModel.uncertainty[k][col_idxs_normativeModel[i_metric]], ecolor='b', ls='None')
-                        # If there are more than 2 tp, plot estimated longitudinal line and color background accordingly
-                        if len(self.subject[subject_id]) > 2 and ~np.isnan(output[k]['trend_coefs'][i_metric, :].sum()):
-                            c = poly_model.basis(2)
-                            c.coef = output[k]['trend_coefs'][i_metric, :].copy()
-                            ax1.plot(self.normativeModel.age_vec, c(self.normativeModel.age_vec), 'b')
-                        # Color background
-                        if not np.isnan(output[k]['devtall_pvals'][i_metric]) and output[k]['devtall_pvals'][i_metric] < pID:
-                            ax1.set_facecolor([1, 0.5, 0.5])
-                            ax1.set_alpha(0.5)
-                        elif not np.isnan(output[k]['devtall_pvals'][i_metric]) and output[k]['devtall_pvals'][i_metric] < alpha_uncorr:
-                            ax1.set_facecolor('yellow')
-                            ax1.set_alpha(0.5)
-                        # Arrange display
-                        ax1.grid()
-                        ax1.set_xlabel('Age (years)')
-                        ax1.set_ylabel(self.metric_names[col_idxs_self[i_metric]])
-                        if 'symmetryIndex' in self.metric_names[col_idxs_self[i_metric]]:
-                            ax1.set_ylim((-1, 1))
-                        # Add text information
-                        ylim = ax1.get_ylim()
-                        yrange = ylim[1] - ylim[0]
-                        xlim = ax1.get_xlim()
-                        xtext = xlim[0] + 0.05 * (xlim[1] - xlim[0])
-                        ax1.text(xtext, ylim[1] + 0.10 * yrange,
-                                 r'mean %s=%1.2f$\pm$%1.2f%s' % (self.metric_plotting_info['type'][col_idxs_self[i_metric]],
-                                                            np.nanmean(subj_measured_metrics[k][:, col_idxs_self[i_metric]]),
-                                                            np.nanstd(subj_measured_metrics[k][:, col_idxs_self[i_metric]], ddof=1),
-                                                            self.metric_plotting_info['units'][col_idxs_self[i_metric]]))
-                        closest_agevec = np.argmin(np.abs(self.normativeModel.age_vec - np.nanmean(subj_ages)))
-                        ax1.text(xtext, ylim[1] + 0.05 * yrange, r'Norm=%1.2f%s, CI=[%1.2f-%1.2f]' % (
-                            self.normativeModel.fit_outputs[k]['fit_ave'][closest_agevec, col_idxs_normativeModel[i_metric]],
-                            self.metric_plotting_info['units'][col_idxs_self[i_metric]],
-                            self.normativeModel.fit_outputs[k]['fit_sml'][closest_agevec, col_idxs_normativeModel[i_metric]],
-                            self.normativeModel.fit_outputs[k]['fit_lrg'][closest_agevec, col_idxs_normativeModel[i_metric]]))
-                        ax1.text(xtext, ylim[0] - 0.01 * yrange,
-                                 r'z$_{dev}$=%1.3f, p$_{dev}$=%1.3f' % (output[k]['devtall_stats'][i_metric],
-                                                                        output[k]['devtall_pvals'][i_metric]))
-
-                        if len(self.subject[subject_id]) > 1:
-                            ax1.text(xtext, ylim[0] - 0.05 * yrange,
-                                     r'z$_{trend}$=%1.3f, p$_{trend}$=%1.3f' % (output[k]['trend_stats'][i_metric],
-                                                                                output[k]['trend_pvals'][i_metric]))
-                        ax1.text(xtext, ylim[0] - 0.10 * yrange,
-                                 r'Odds=%1.3f, outlier_frac=%1.3f, P(art.)=%1.3f' % (
-                                 self.normativeModel.stats[k]['odds'][col_idxs_normativeModel[i_metric]],
-                                 self.normativeModel.stats[k]['fout'][col_idxs_normativeModel[i_metric]],
-                                 self.normativeModel.stats[k]['part'][col_idxs_normativeModel[i_metric]]))
-
-                        ax1.set_ylim(ylim[0] - 0.15 * yrange, ylim[1] + 0.15 * yrange)
-                        output_folder = os.path.join(html_output, 'figs')
-                        if not os.path.exists(output_folder):
-                            os.makedirs(output_folder)
-                        fig.savefig(os.path.join(output_folder, '%s_%s.jpeg' % (self.normativeModel.metric_names[col_idxs_normativeModel[i_metric]], k)),
-                                    dpi=300)
-                        plt.close()
 
         return subj_covariate_values, normModel_matching_cols, subj_measured_metrics, output, pID
 

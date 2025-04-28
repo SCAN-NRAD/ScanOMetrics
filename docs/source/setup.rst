@@ -11,7 +11,7 @@ create a new conda environment:
 .. code-block:: console
 
     conda create -y -n scanometrics python=3.10
-    source activate scanometrics
+    conda activate scanometrics
 
 Installation
 ------------
@@ -24,7 +24,7 @@ in your current directory will be created):
 
     (scanometrics)$ git clone https://github.com/SCAN-NRAD/scanometrics.git
     (scanometrics)$ cd scanometrics
-    (scanometrics)$ pip install .
+    (scanometrics)$ pip install numpy && pip install .
 
 Data formatting
 ---------------

@@ -20,6 +20,8 @@ proc_software_list = dir(scanometrics.processing)
 
 def get_scannrad_records():
     local_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'normative_models')
+    if not os.path.exists(local_path):
+        os.makedirs(local_path)
     response = requests.get(__ZENODO_URL__)
     record = response.json()
     models = {}
@@ -76,6 +78,8 @@ def download_file(url: str, local_filename: str, chunk_size: Optional[int] = 819
     # which itself borrowed from https://stackoverflow.com/questions/16694907/download-large-file-in-python-with-requests
     # NOTE the stream=True parameter below
     logging.PRINT(f"Downloading {url} to {local_filename}")
+    if not os.path.exists(os.path.dirname(local_filename)):
+        os.makedirs(os.path.dirname(local_filename))
     with requests.get(url, stream=True, timeout=100) as r:
         r.raise_for_status()
         with tqdm.wrapattr(open(local_filename, 'wb'), "write", total=int(r.headers.get("Content-Length"))) as f:

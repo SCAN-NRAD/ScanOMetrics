@@ -50,7 +50,6 @@ class EvaluationThread(QThread):
             subj_covariate_values, normModel_matching_cols, subj_measured_metrics, output, pid = self.som_project.evaluate_singleSubject_allSes(
                 self.sub_name,
                 matching_covariates=['sex', 'sequence'],  # TODO: add option to set covariates in GUI
-                create_html_report=False
             )
 
             self.progress.emit(50)  # Emit progress update (50%)
