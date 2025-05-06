@@ -398,7 +398,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
                           metric_exclude=None):
         """Load metrics computed by processing pipeline. We let the processing class to implement the specific loading
         of metrics according to it. Fills with Nans the values that don't exist for a given subject.
-        Can be saved with save\_proc\_metrics() (eg a 75x1258 matrix requires 760 kB). Covariates is a list of variable
+        Can be saved with save_proc_metrics() (eg a 75x1258 matrix requires 760 kB). Covariates is a list of variable
         names in participants.tsv to keep and save in a covariate_values numpy array.
 
         :param subjects: subject dictionary following the SOM.subject structure, which takes participants IDs from the
@@ -1157,7 +1157,7 @@ with 'pip install -U .'""" % metric_proc_pipeline)
         for i, covariate_name in enumerate(self.normativeModel.covariate_names):
             subj_covariate_values[:, i] = self.covariate_values[subj_rows, :][:, self.covariate_names.index(covariate_name)]
         # Predict values for current subjects
-        predicted_values = self.normativeModel.predict_values(self.covariate_values[:, self.covariate_names['age']])
+        predicted_values = self.normativeModel.predict_values(self.covariate_values[:, self.covariate_names.index('age')])
         for k in normalizations:
             # Get column matching between self.measured_metrics and self.normativeModel.measured_metrics, using metric_names
             col_idxs_normativeModel = []
