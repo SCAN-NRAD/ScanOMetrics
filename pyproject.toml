@@ -28,7 +28,7 @@ dependencies = [
     "reportlab~=4.2.2",
     "tqdm>=4.67.1",
     "pydicom",
-    "DL-DiReCT @ git+https://github.com/SCAN-NRAD/DL-DiReCT-V2.git@v1.0.3"
+    "DL-DiReCT @ git+https://github.com/SCAN-NRAD/DL-DiReCT-V2.git@v1.0.4"
 ]
 dynamic = ["version", "description"]
 
