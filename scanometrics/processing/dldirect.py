@@ -477,7 +477,7 @@ class proc_pipeline:
             else:
                 metric_unit.append(r'unknown')
                 metric_type.append('unknown')
-                logging.PRINT('%s does not match any metric type in Freesurfer.py metric list' % m)
+                logging.PRINT('%s does not match any metric type in dldirect.py metric list' % m)
 
         # Get indexes of unique combinations of scanner and sequence in current subjects
         matching_col = covariate_names.index('sequence')

@@ -10,8 +10,14 @@ create a new conda environment:
 
 .. code-block:: console
 
-    conda create -y -n scanometrics python=3.10
-    source activate scanometrics
+    conda create -y -n scanometrics python=3.12
+    conda activate scanometrics
+
+Requirements
+------------
+
+Latest versions of DL+DiReCT require the installation of `nighres <https://nighres.readthedocs.io/en/latest/installation.html>`_
+as well as `Freesurfer version 7.4.1 <https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads#A7.4.1release>`_.
 
 Installation
 ------------
@@ -22,8 +28,8 @@ in your current directory will be created):
 
 .. code-block:: console
 
-    (scanometrics)$ git clone https://github.com/SCAN-NRAD/scanometrics.git
-    (scanometrics)$ cd scanometrics
+    (scanometrics)$ git clone https://github.com/SCAN-NRAD/ScanOMetrics.git
+    (scanometrics)$ cd ScanOMetrics
     (scanometrics)$ pip install .
 
 Data formatting
